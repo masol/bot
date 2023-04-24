@@ -14,7 +14,8 @@ _ = gettext.gettext
 
 @click.group()
 def bot() -> None:
-    click.echo(os.path.dirname(__file__))
+    pass
+    # click.echo(os.path.dirname(__file__))
 
 
 @bot.command()

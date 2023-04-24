@@ -71,7 +71,7 @@ run:
 .PHONY: xi18n
 ## xi18n: Recursively scan the src directory and use xgettext to extract internationalized text.
 xi18n:
-	find src -iname "*.py" | xargs xgettext --from-code=UTF-8 --default-domain=bot -d bot -o locales/bot.pot
+	find src -iname "*.py" | xargs xgettext --from-code=UTF-8 --default-domain=bot -d bot -o i18n/messages.pot
 
 
 .PHONY: help
