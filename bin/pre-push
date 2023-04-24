@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+isort --check-only src tests
+if [ $? -ne 0 ]; then
+  echo "[!] isort failed! Run 'isort -rc -y src tests'"
+  exit 1
+fi
+echo "[+] isort success!"
+
+black -S -l 79 --check src tests
+if [ $? -ne 0 ]; then
+  echo "[!] black failed! Run 'black -S -l 79 src tests'"
+  exit 1
+fi
+echo "[+] black success!"
+
+pylint src
+if [ $? -ne 0 ]; then
+  echo "[!] pylint failed! Please fix code before push"
+  exit 1
+fi
+echo "[+] pylint success!"
+
+mypy src
+if [ $? -ne 0 ]; then
+  echo "[!] mypy failed! Please fix code before push"
+  exit 1
+fi
+echo "[+] mypy success!"
+
+exit 0
