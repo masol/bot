@@ -1,6 +1,12 @@
 UNAME := $(shell uname)
 
 
+.PHONY: init
+## init: install requirements
+init:
+	pip install pipenv
+	pipenv install --dev
+
 
 .PHONY: setup
 ## setup: setup project enviroments
@@ -13,18 +19,12 @@ else ifeq ($(UNAME), Darwin)
 	echo 'mac os'
 endif
 
-.PHONY: init
-## init: install requirements
-init:
-	pip install pipenv
-	pipenv install --dev
-
 .PHONY: check
 ## check: check if everything's okay
 check:
-	isort --check-only src tests
+	isort --check-only --profile=black src tests
 	black -S -l 79 --check src tests
-	pylint src
+	pylint --disable=C0411 src
 	mypy src
 
 .PHONY: format
@@ -66,6 +66,12 @@ build:
 ## run: Quick command execution for easy development
 run:
 	python src example/simple/wf.js
+
+
+.PHONY: xi18n
+## xi18n: Recursively scan the src directory and use xgettext to extract internationalized text.
+xi18n:
+	find src -iname "*.py" | xargs xgettext --from-code=UTF-8 --default-domain=bot -d bot -o locales/bot.pot
 
 
 .PHONY: help
