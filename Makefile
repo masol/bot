@@ -74,6 +74,11 @@ run:
 xi18n:
 	find src -iname "*.py" | xargs xgettext --from-code=UTF-8 --default-domain=bot -d bot -o i18n/messages.pot
 
+.PHONY: clean
+## clean: Clean up dist, build and pyc caches
+clean:
+	rm -rf build dist
+ 	#find src -iname "*.pyc" -delete
 
 .PHONY: help
 ## help: prints this help message

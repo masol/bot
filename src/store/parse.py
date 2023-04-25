@@ -2,15 +2,8 @@ import esprima
 import os
 import textwrap
 from gettext import gettext as _
-
-import util
-
-
-# 如果node是identify类型,则返回identify的名称,否则返回None
-def identify(node: esprima.nodes.Node) -> str or None:
-    if node.type == "Identifier":
-        return node.name
-    return None
+import util.log as logger
+from util.ast import identify
 
 
 def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-arg]
@@ -57,7 +50,7 @@ def execFunc(node: esprima.nodes.CallExpression, ctx) -> None:
     from store.load import load
     for arg in args:
         if not load(arg, ctx):
-            util.error(
+            logger.error(
                 _('failed to load "%s" in function "%s".\n\t%s')
                 % (arg, callee, nodestr(node, ctx))
             )
@@ -71,7 +64,7 @@ def loadexp(node: esprima.nodes.ExpressionStatement, ctx: dict) -> None:  # type
     elif expNode.type == "CallExpression":
         execFunc(expNode, ctx)
     else:
-        util.error(
+        logger.error(
             _('invalid node type "%s" in root expression.\n\t%s')
             % (node.type, nodestr(expNode, ctx))
         )
@@ -83,7 +76,7 @@ def loadbody(node: esprima.nodes.Node, ctx: dict) -> None:  # type: ignore[type-
     # elif node.type == 'ClassDeclaration'
     #     loadcls(node,ctx)
     else:
-        util.warn(
+        logger.warn(
             _('invalid node type "%s" in the root of program.\n\t%s')
             % (node.type, nodestr(node, ctx))
         )
@@ -100,13 +93,13 @@ def parse(ctx: dict) -> None:  # type: ignore[type-arg]
             {"range": True, "loc": True, "tolerant": ctx.get("tolerant")},
         )
     except esprima.Error as e:
-        util.error(_('while compiling file "%s":\n\t') % src + str(e))
+        logger.error(_('while compiling file "%s":\n\t') % src + str(e))
         return
 
     # 如果ast根节点不是一个Program,则退出.
 
     if (not ast.type) or (ast.type != "Program") or (not ast.body):
-        util.error(_('while compiling file "%s":\n\t') % src + _("not a program"))
+        logger.error(_('while compiling file "%s":\n\t') % src + _("not a program"))
         return
     for item in ast.body:
         loadbody(item, ctx)

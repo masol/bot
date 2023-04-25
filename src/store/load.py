@@ -4,7 +4,7 @@ import urllib.parse
 from gettext import gettext as _
 
 import store.parse as parser
-import util
+import util.log as logger
 
 
 def fileorurl(src: str) -> bool:
@@ -24,7 +24,7 @@ def getcontent(src: str) -> str or None:  # type: ignore[valid-type]
         try:
             return requests.get(src, timeout=3).text
         except requests.exceptions.RequestException as e:
-            util.error(e)
+            logger.error(e)
             return None
     return None
 
@@ -42,12 +42,12 @@ def load(src: str, opts: dict) -> bool:  # type: ignore[type-arg]
             src = os.path.join(base, src)
 
     if not fileorurl(src):
-        util.error(_("'%s' is neither a URL nor a file.") % src)
+        logger.error(_("'%s' is neither a URL nor a file.") % src)
         return False
 
     if src in opts["loaded"]:
         if opts["verbose"]:
-            util.info(_('skipping "%s" (already loaded)') % src)
+            logger.info(_('skipping "%s" (already loaded)') % src)
         return True
     else:
         opts['loaded'][src] = True
@@ -57,7 +57,7 @@ def load(src: str, opts: dict) -> bool:  # type: ignore[type-arg]
     if not content:
         # cotent的类型是字符串,意味着不是因为错误，而是内容为空．
         if isinstance(content, str):
-            util.warn(_('content of "%s" is empty.') % src)
+            logger.warn(_('content of "%s" is empty.') % src)
         return True
     
     opts['content'] = content
