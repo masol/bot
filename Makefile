@@ -24,7 +24,7 @@ endif
 check:
 	isort --check-only --profile=black src tests
 	black -S -l 79 --check src tests
-	pylint --disable=C0411 src
+	pylint --disable=C0411,C0301,E0611,E0401 src
 	mypy src
 
 .PHONY: format
@@ -53,9 +53,10 @@ htmlcov:
 .PHONY: requirements
 ## requirements: update requirements.txt
 requirements:
-	pipenv requirements >> requirements.txt
-	pipenv requirements --dev >> requirements-dev.txt
-
+	pipenv requirements > requirements.txt
+	pipenv requirements --dev > requirements-dev.txt
+	pip install -r requirements.txt
+	pip install -r requirements-dev.txt
 
 .PHONY: build
 ## build: build executable package

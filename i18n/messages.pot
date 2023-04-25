@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-04-25 03:28+0800\n"
+"POT-Creation-Date: 2023-04-25 16:33+0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,6 +17,26 @@ msgstr ""
 "Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/__main__.py:24
+#: src/__main__.py:21
+msgid "Usage:"
+msgstr ""
+
+#: src/__main__.py:42
+msgid "Options"
+msgstr ""
+
+#: src/__main__.py:54
+msgid "Commands"
+msgstr ""
+
+#: src/__main__.py:68
 msgid "bot cmd1"
+msgstr ""
+
+#: src/__main__.py:70
+msgid "ommand on bot2222"
+msgstr ""
+
+#: src/__main__.py:78
+msgid "analysis Command on bot"
 msgstr ""
