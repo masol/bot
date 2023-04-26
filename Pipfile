@@ -17,6 +17,7 @@ colored = "==1.4.4"
 click-completion = "==0.5.2"
 requests = "==2.28.2"
 esprima-fork = "==4.0.4"
+js2py = "==0.74"
 
 [requires]
 python_version = "3"

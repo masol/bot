@@ -1,12 +1,13 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+from PyInstaller.utils.hooks import collect_submodules
+
 
 block_cipher = None
 
-
 a = Analysis(
     ['src/__main__.py'],
-    pathex=[],
+    pathex=['src'],
     binaries=[],
     datas=[],
     hiddenimports=[],

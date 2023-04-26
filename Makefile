@@ -6,7 +6,8 @@ UNAME := $(shell uname)
 init:
 	pip install pipenv
 	pipenv install --dev
-
+# env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install 3.9.4
+# pip install PyInstaller
 
 .PHONY: setup
 ## setup: setup project enviroments

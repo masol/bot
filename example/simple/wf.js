@@ -1,18 +1,18 @@
 $include('wf.js')
-$wf.a=  {
+$wf.购物 =  {
     "name": "购物",
     "dtd": "购物",
     "behaves": [
       {
-        "who": "用户",
-        "do": "选择",
-        "object": "商品",
+        "subj": "用户",
+        "pred": "选择",
+        "obj": "商品",
         "next": []
       },
       {
-        "who": "用户",
-        "do": "选择",
-        "object": "商品",
+        "subj": "用户",
+        "pred": "选择",
+        "obj": "商品",
         "next": []
       }
     ]

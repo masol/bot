@@ -59,7 +59,7 @@ def load(src: str, opts: dict) -> bool:  # type: ignore[type-arg]
         if isinstance(content, str):
             logger.warn(_('content of "%s" is empty.') % src)
         return True
-    
+
     opts['content'] = content
     opts['src'] = src
     parser.parse(opts)

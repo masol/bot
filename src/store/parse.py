@@ -2,8 +2,9 @@ import esprima
 import os
 import textwrap
 from gettext import gettext as _
+
 import util.log as logger
-from util.ast import identify
+from util.ast import identify, unquote
 
 
 def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-arg]
@@ -23,7 +24,21 @@ def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-ar
 
 
 def loadAssign(node, ctx) -> None:
-    pass
+    operator = unquote(node.operator)
+    if operator != "=":
+        logger.warn(
+            _(
+                "Only assignment operations are supported,but with the input of '%s':\n\t%s"
+            )
+            % (node.operator, nodestr(node, ctx))
+        )
+        return
+    if node.right.type != "ObjectExpression":
+        logger.warn(
+            _("Only object definitions can be assigned to entity objects:\n\t%s")
+            % nodestr(node.right, ctx)
+        )
+        return
 
 
 def execFunc(node: esprima.nodes.CallExpression, ctx) -> None:
@@ -38,16 +53,12 @@ def execFunc(node: esprima.nodes.CallExpression, ctx) -> None:
             # 如果当前系统路径分割符不等于/,则将其替换为/
             if os.path.sep != "/":
                 argStr = argStr.replace("/", os.path.sep)
-        # 如果argStr被'或"包围，移除两边的引号
-        if (argStr.startswith('"') and argStr.endswith('"')) or (
-            argStr.startswith("'") and argStr.endswith("'")
-        ):
-            argStr = argStr[1:-1]
-        args.append(argStr)
+        args.append(unquote(argStr))
     # 获取ctx.src的目录
     oldbase = ctx.get("base")
     ctx["base"] = os.path.dirname(ctx.get("src"))
     from store.load import load
+
     for arg in args:
         if not load(arg, ctx):
             logger.error(
