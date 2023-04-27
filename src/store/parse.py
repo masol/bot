@@ -5,6 +5,7 @@ from gettext import gettext as _
 
 import util.log as logger
 from util.ast import identify, unquote
+from store.humod import Humod
 
 
 def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-arg]
@@ -22,6 +23,16 @@ def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-ar
     )
     return msg
 
+def getentity(node,ctx) -> Humod.entity or None:
+    if node.type == 'Identifier':
+        inst = Humod()
+        inst.entity(node.name)
+        logger.warn(
+            _('invalid node type "%s" in root expression.\n\t%s')
+            % (node.type, nodestr(node, ctx))
+        )
+        return None
+    pass
 
 def loadAssign(node, ctx) -> None:
     operator = unquote(node.operator)
@@ -39,6 +50,9 @@ def loadAssign(node, ctx) -> None:
             % nodestr(node.right, ctx)
         )
         return
+    # 获取左边的变量名
+    name = identify(node.left)
+    print(node.left)
 
 
 def execFunc(node: esprima.nodes.CallExpression, ctx) -> None:

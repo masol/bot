@@ -84,3 +84,12 @@ class Humod:  # human model(workflow based usage description)
     @property
     def dtds(self):  # readonly property _dtds.
         return self._dtds
+    
+    def entity(self,name): # get entity by name
+        if name == '$env':
+            return self._env
+        elif name == '$wf':
+            return self._wfs
+        elif name == '$dtd':
+            return self._dtds
+        return None
