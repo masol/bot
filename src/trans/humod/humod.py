@@ -1,10 +1,9 @@
 import os
 from sklearn.base import TransformerMixin
 
-import util.log as logger
+from entity.humod import Humod as HumodEntity
 
 from .load import load
-from entity.humod import Humod as HumodEntity
 
 
 class Humod(TransformerMixin):
@@ -24,7 +23,7 @@ class Humod(TransformerMixin):
             "verbose": getattr(store.env, "verbose", False),
             # "imodel": src,
             "omodel": store.models["humod"],
-            "store": store
+            "store": store,
         }
         load(src, ctx)
 

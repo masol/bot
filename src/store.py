@@ -1,8 +1,8 @@
 from attrs import define, field
 from singleton.singleton import Singleton  # ,ThreadSafeSingleton
 
-from entity.env import Env
 from entity.entity import Model
+from entity.env import Env
 
 
 @Singleton

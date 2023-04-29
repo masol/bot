@@ -1,9 +1,22 @@
 # bot
 
-Tools for behavior-oriented software engineering methodology.\nMore information, please visit https://pinyan.tech
+Tools for behavior-oriented software engineering methodology.
 
-[![Python Version: 3.7](https://badgen.net/badge/python/3.7/blue)](https://docs.python.org/3.7/)&nbsp;[![Code Style: Black](https://badgen.net/badge/code%20style/black/black)](https://github.com/ambv/black)&nbsp;[![Build Status](https://badgen.net/badge/travis/passing/green)](https://travis-ci.com/)&nbsp;[![codecov](https://badgen.net/badge/coverage/100%25/green)](https://codecov.io/)
-<!-- TODO: You should change codecov, travis badges to valid URL-->
+I believe: The way of AI future is not deep learning using like now.
+
+ChatGPT is great,but the problems caused by Explainable AI are still present in ChatGPT.For example, if you find a problem with chatgpt's result, you cannot explore the reasoning with him． And that's not the case with human．All current AI using deep learning have this problem.
+
+I am trying a model that uses symbolic reasoning as the core, simulating human abstraction, analogy and deduction. That is, using Horn-SAT as core and deep learning only for small problems.
+
+I split the job into three parts.
+
+* Enter the workflow of using a software and generate the software code that supports the workflow.
+* Generate the usage workflow through natural language.
+* Job 1 can generate its own plug-in code and dynamically run it to analyze and learn the content of Job 2.
+
+The whole process is human-like, built on abstraction, analogy and deduction. The Shannon entropy change triggered by each behavior is used as the reward function.
+
+The code here is Job 1. This is a proof-of-principle project, progress will be slow, welcome to communicate with me on related topics.
 
 ## Getting Started
 
