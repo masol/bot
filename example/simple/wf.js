@@ -1,5 +1,5 @@
 $include('wf.js')
-$wf.购物 =  {
+$wfs.购物 =  {
     "name": "购物",
     "dtd": "购物",
     "behaves": [

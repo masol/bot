@@ -4,10 +4,19 @@ import textwrap
 from gettext import gettext as _
 
 import util.log as logger
-from util.ast import identify, unquote
-from store.humod import Humod
+from entity.entity import Entity
+from store import Store
+from util.str import unquote
 
 
+# 如果node是identify类型,则返回identify的名称,否则返回None
+def identify(node: esprima.nodes.Node) -> str or None:
+    if node.type == "Identifier":
+        return node.name
+    return None
+
+
+# 获取node的文本内容，用于在错误信息中显示
 def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-arg]
     content: str = str(ctx.get("content"))
     nodetxt: str = str(content[node.range[0] : node.range[1]])
@@ -23,9 +32,15 @@ def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-ar
     )
     return msg
 
-def getentity(node,ctx) -> Humod.entity or None:
-    if node.type == 'Identifier':
-        inst = Humod()
+
+def getentity(node, ctx) -> Entity or None:
+    if node.type == "Identifier":
+        name = identify(node)
+        if not name:
+            return None
+        if name.startswith("$"):
+            name = name[1:]
+        inst = Store.instance()
         inst.entity(node.name)
         logger.warn(
             _('invalid node type "%s" in root expression.\n\t%s')
@@ -33,6 +48,13 @@ def getentity(node,ctx) -> Humod.entity or None:
         )
         return None
     pass
+
+
+def getEntity(node, ctx) -> Entity or None:
+    if node.type == "Identifier":
+        store = Store.instance()
+    pass
+
 
 def loadAssign(node, ctx) -> None:
     operator = unquote(node.operator)
@@ -46,7 +68,9 @@ def loadAssign(node, ctx) -> None:
         return
     if node.right.type != "ObjectExpression":
         logger.warn(
-            _("Only object definitions can be assigned to entity objects:\n\t%s")
+            _(
+                "Only object definitions can be assigned to entity objects:\n\t%s"
+            )
             % nodestr(node.right, ctx)
         )
         return
@@ -71,11 +95,11 @@ def execFunc(node: esprima.nodes.CallExpression, ctx) -> None:
     # 获取ctx.src的目录
     oldbase = ctx.get("base")
     ctx["base"] = os.path.dirname(ctx.get("src"))
-    from store.load import load
+    from .load import load
 
     for arg in args:
         if not load(arg, ctx):
-            logger.error(
+            logger.warn(
                 _('failed to load "%s" in function "%s".\n\t%s')
                 % (arg, callee, nodestr(node, ctx))
             )
@@ -124,7 +148,9 @@ def parse(ctx: dict) -> None:  # type: ignore[type-arg]
     # 如果ast根节点不是一个Program,则退出.
 
     if (not ast.type) or (ast.type != "Program") or (not ast.body):
-        logger.error(_('while compiling file "%s":\n\t') % src + _("not a program"))
+        logger.error(
+            _('while compiling file "%s":\n\t') % src + _("not a program")
+        )
         return
     for item in ast.body:
         loadbody(item, ctx)

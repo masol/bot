@@ -23,6 +23,15 @@ click-completion = "==0.5.2"
 requests = "==2.28.2"
 js2py = "==0.74"
 esprima = {version = "==4.0.1", index = "pypitunatsinghuaedu"}
+pip = "*"
+scikit-learn = "==1.2.2"
+singleton = "==0.1.0"
+anytree = "==2.8.0"
+pydantic = "==1.10.7"
+pluginlib = "==0.9.0"
+setuptools = "==67.7.2"
+zodb = "==5.8.0"
+attrs = "==23.1.0"
 
 [requires]
 python_version = "3"
