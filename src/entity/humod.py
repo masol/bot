@@ -70,8 +70,6 @@ class Humod(Entity):
     def __attrs_post_init__(self):
         from store import Store
 
-        print(Workflows.data)
-
         inst: Store = Store.instance()
         ctx = inst.getctx(HUMOD_CTX_NAME)
         ctx.add_entity("wfs", self.wfs)
