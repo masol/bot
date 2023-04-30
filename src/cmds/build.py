@@ -6,6 +6,8 @@ from store import Store
 from trans import Humod, JobDuty
 from util.log import LoggerExcept
 
+from rich import pretty
+
 # import util
 # import store.load as loader
 # from store.humod import Humod
@@ -14,13 +16,18 @@ from util.log import LoggerExcept
 def build(opts: dict) -> None:  # type: ignore[type-arg]
     pipeline = Pipeline([("load", Humod()), ("jobduty", JobDuty())])
 
-    store = Store.instance()
+    store:Store = Store.instance()
     store.init(opts)
     try:
+        import json
+        import pprint
+        import attrs
         result = pipeline.fit_transform(store)
         # click.echo(f"result={result}")
-        refskeys = " ".join(store.models.get('humod').refs.keys())
+        refskeys = " ".join(store.getctx('humod').keys())
         click.echo(f"refskeys={refskeys}")
+        model = store.models.get('humod', None)
+        print(pretty.pretty_repr(model))
     except LoggerExcept as e:
         pass
 
