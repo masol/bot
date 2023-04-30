@@ -7,7 +7,7 @@ class EntRef:
     def __init__(self):
         self._ents = WeakValueDictionary()
 
-    def get_entity(self, name: str):
+    def get_entity(self, name: str, getset=False):
         ent = self._ents.get(name, None)
         if isinstance(ent, WeakSet):
             entLen = len(ent)
@@ -20,6 +20,8 @@ class EntRef:
                     if obj is not None:
                         self._ents[name] = obj
                         return obj
+            if not getset:
+                return list(ent)[:-1]
         return ent
 
     def add_entity(self, name: str, ent) -> None:
@@ -28,20 +30,22 @@ class EntRef:
         if name in self._ents:
             from .entity import Entity
 
-            oldent = self._ents[name]
+            oldent = self._ents.get(name, None)
             if isinstance(oldent, WeakSet):
                 oldent.add(ent)
                 return
             elif isinstance(oldent, Entity):
                 self._ents[name] = WeakSet([oldent, ent])
-            return
-        self._ents[name] = oldent
+        self._ents[name] = ent
 
     def remove_entity(self, name: str) -> None:
         self._ents.pop(name, None)
 
     def clear(self) -> None:
         self._ents.clear()
+
+    def keys(self):
+        return self._ents.keys()
 
     def __str__(self):
         return str(self._ents)

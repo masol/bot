@@ -3,7 +3,7 @@ from attrs import define, field
 from . import entity
 
 
-@define(slots=False)
+@define(slots=True)
 class Env(entity.Entity):
     src: str = ''
     type = "Env"

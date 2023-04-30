@@ -6,7 +6,7 @@ from entity.env import Env
 
 
 @Singleton
-@define(slots=False)
+@define(slots=True)
 class Store:
     env: Env = field(metadata={"desc": ""}, default=None)
     models: dict[str:Model] = field(default={})

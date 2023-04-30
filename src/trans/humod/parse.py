@@ -4,8 +4,7 @@ import textwrap
 from gettext import gettext as _
 
 import util.log as logger
-from entity.entity import Entity
-from store import Store
+from entity.entity import Entity, EntRef, Model
 from util.str import unquote
 
 
@@ -33,27 +32,67 @@ def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-ar
     return msg
 
 
-def getentity(node, ctx) -> Entity or None:
+def assign2ent(ent: Entity, node: esprima.nodes.ObjectExpression, ctx) -> None:
+    print("getted entity,assign node to it!", ent, node)
+    # 遍历node.properties数组,为每个值赋值．
+    for propnode in node.properties:
+        if propnode.type != 'Property':
+            logger.warn()
+            continue
+    pass
+
+
+def getentity(
+    node, refs: EntRef, parent: Entity or None, ctx
+) -> Entity or None:
     if node.type == "Identifier":
-        name = identify(node)
+        # 获取左边的变量名
+        name = unquote(identify(node))
         if not name:
             return None
         if name.startswith("$"):
             name = name[1:]
-        inst = Store.instance()
-        inst.entity(node.name)
+        ent = refs.get_entity(name)
+        if isinstance(ent, Entity):
+            return ent
+        # 创建新的实体.
+        if not isinstance(parent, Entity):
+            logger.warn(
+                _('failed to create entity "%s" (no parent entity).\n\t%s')
+                % (node.type, nodestr(node, ctx))
+            )
+            return None
+        if (not hasattr(parent, "createchild")) or (
+            not callable(parent.createchild)
+        ):
+            logger.warn(
+                _(
+                    'failed to create entity "%s" (parent entity is not a container).\n\t%s'
+                )
+                % (node.type, nodestr(node, ctx))
+            )
+            return None
+        child = parent.createchild(name)
+        if child is None:
+            logger.warn(
+                _('failed to create child entity "%s".\n\t%s')
+                % (name, nodestr(node, ctx))
+            )
+        refs.add_entity(name, child)
+        return child
+    elif node.type == "MemberExpression":
+        # 获取左边的entity
+        obj_ent = getentity(node.object, refs, parent, ctx)
+        if not isinstance(obj_ent, Entity):
+            return None
+        # 获取右边的属性
+        return getentity(node.property, refs, obj_ent, ctx)
+    else:
         logger.warn(
-            _('invalid node type "%s" in root expression.\n\t%s')
+            _('failed to get entity "%s"(invalid node type).\n\t%s')
             % (node.type, nodestr(node, ctx))
         )
         return None
-    pass
-
-
-def getEntity(node, ctx) -> Entity or None:
-    if node.type == "Identifier":
-        store = Store.instance()
-    pass
 
 
 def loadAssign(node, ctx) -> None:
@@ -74,9 +113,15 @@ def loadAssign(node, ctx) -> None:
             % nodestr(node.right, ctx)
         )
         return
-    # 获取左边的变量名
-    name = identify(node.left)
-    print(node.left)
+    model: Model = ctx.get("omodel")
+    ent = getentity(node.left, model.refs, None, ctx)
+    if not isinstance(ent, Entity):
+        logger.warn(
+            _('failed to get entity "%s".\n\t%s')
+            % (node.type, nodestr(node, ctx))
+        )
+        return
+    assign2ent(ent, node.right, ctx)
 
 
 def execFunc(node: esprima.nodes.CallExpression, ctx) -> None:

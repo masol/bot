@@ -8,23 +8,52 @@ from .entref import EntRef
 #     abs: bool = field(default=False)  # is abstract
 
 
-@define(slots=False)
+@define(slots=True)
 class Entity:
     # type: str = field(metadata={"desc": ""}, default="Entity")
     type: str = field(default="Entity")
     name: str = field(default="")
 
 
-@define(slots=False)
-class Model:
+# @define(slots=False)
+# class EntDyn: #可以动态扩展属性的实体,不推荐使用
+# type: str = field(default="EntDyn")
+# name: str = field(default="")
+
+
+@define(slots=True)
+class Model(Entity):
     type: str = field(default="Model")
-    name: str = field(default="")
     refs: EntRef = field(default=EntRef())
 
 
-@define(slots=False)
+@define(slots=True)
+class EntList(Entity):
+    type: str = field(default="EntTree")
+    data: list = field(default=[])
+    childtype: type = field(default=Entity)
+
+    def createchild(self, **kwargs) -> type or None:
+        if not callable(self.childtype):
+            return None
+        child = self.childtype(**kwargs)
+        self.data.append(child)
+        return child
+
+
+@define(slots=True)
 class EntDict(Entity):
-    data = field(default={})
+    type: str = field(default="EntDict")
+    data: dict = field(default={})
+    childtype: type = field(default=Entity)
+
+    def createchild(self, key, **kwargs) -> type or None:
+        if not callable(self.childtype):
+            return None
+        child = self.childtype(**kwargs)
+        child.name = key
+        self.data[key] = child
+        return child
 
     def __getitem__(self, key):
         return self.data[key]

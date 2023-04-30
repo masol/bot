@@ -18,7 +18,9 @@ def build(opts: dict) -> None:  # type: ignore[type-arg]
     store.init(opts)
     try:
         result = pipeline.fit_transform(store)
-        click.echo(f"result={result}")
+        # click.echo(f"result={result}")
+        refskeys = " ".join(store.models.get('humod').refs.keys())
+        click.echo(f"refskeys={refskeys}")
     except LoggerExcept as e:
         pass
 
