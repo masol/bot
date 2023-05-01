@@ -1,12 +1,11 @@
 import click
 from gettext import gettext as _
+from rich import pretty
 from sklearn.pipeline import Pipeline
 
 from store import Store
 from trans import Humod, JobDuty
 from util.log import LoggerExcept
-
-from rich import pretty
 
 # import util
 # import store.load as loader
@@ -16,12 +15,13 @@ from rich import pretty
 def build(opts: dict) -> None:  # type: ignore[type-arg]
     pipeline = Pipeline([("load", Humod()), ("jobduty", JobDuty())])
 
-    store:Store = Store.instance()
+    store: Store = Store.instance()
     store.init(opts)
     try:
+        import attrs
         import json
         import pprint
-        import attrs
+
         result = pipeline.fit_transform(store)
         # click.echo(f"result={result}")
         refskeys = " ".join(store.getctx('humod').keys())

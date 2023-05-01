@@ -13,7 +13,7 @@ class Humod(TransformerMixin):
     def fit(self, store):
         if not store.models.get("humod", None):
             store.models["humod"] = HumodEntity()
-            
+
         return self
 
     def transform(self, store):

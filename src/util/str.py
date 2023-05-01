@@ -15,6 +15,7 @@ def unquote(txt: str) -> str:
         return txt[1:-1]
     return txt
 
+
 def is_valid_string(s):
     """Check if a variable is a valid string and has length greater than zero."""
     return isinstance(s, str) and len(s) > 0

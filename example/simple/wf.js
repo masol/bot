@@ -6,15 +6,15 @@ $wfs.购物 =  {
     "behaves": [
       {
         "subj": "用户",
-        "pred": "选择",
+        "pred": "购买",
         "obj": "商品",
         "submits": [{
         },{
         }]
       },
       {
-        "subj": "用户",
-        "pred": "选择",
+        "subj": "商家",
+        "pred": "发送",
         "obj": "商品",
         "submits": []
       }

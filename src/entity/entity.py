@@ -1,7 +1,11 @@
-from attrs import define, field
-from weakref import WeakSet, WeakValueDictionary
+from attrs import define, field, fields
+from gettext import gettext as _
 
+import util.log as logger
 from util.str import is_valid_string
+
+# from weakref import WeakSet, WeakValueDictionary
+
 
 # @define
 # class Meta:
@@ -44,12 +48,82 @@ class Entity:
         return value
 
     # 本实体是否拥有指定的属性
-    def has(self, attr: str) -> bool:
+    def hasattr(self, attr: str) -> bool:
         try:
             getattr(self, attr)
         except AttributeError:
             return False
         return True
+
+    # 　将child赋给指定的属性,如果属性为list,dict,weakset,则将child添加到集合中．
+    def addchild(self, prop: str, child, key: str) -> bool:
+        attr = getattr(self, prop, None)
+        if isinstance(attr, list):
+            attr.append(child)
+        elif isinstance(attr, dict):
+            if is_valid_string(key):
+                attr[key] = child
+            else:
+                logger.warn(
+                    _(
+                        "adding empty key '%s' of entity(dict type),factory should be list?"
+                    )
+                    % (prop)
+                )
+            return False
+        # elif isinstance(attr, WeakSet):
+        elif isinstance(attr, set) or isinstance(attr, list):
+            attr.add(child)
+        else:
+            setattr(self, prop, child)
+        return True
+
+    # 为指定的属性创建子实体．
+    # kwargs默认可以传入add参数(默认为True)，用于指定是否将新创建的实体添加到父实体的属性中．
+    # kwargs默认可以传入key参数(默认为空)，用于指定新创建的实体的名称．此时父实体的对应属性必须是一个字典．
+    def newchild(self, prop: str, **kwargs):
+        try:
+            meta = getattr(fields(type(self)), prop, None)
+            if not meta is None:
+                # metadata = getattr(meta,'metadata',None)
+                metadata = meta.metadata["childtype"]
+                if isinstance(metadata, type):
+                    # 收集可能传入的key和add参数
+                    key = kwargs.pop("key", None)
+                    add = kwargs.pop("add", True)
+                    child = metadata(**kwargs)
+                    if isinstance(child, Entity):
+                        child.ctx = self.ctx
+                        if is_valid_string(key):
+                            child.name = key
+                        elif is_valid_string(child.name):
+                            key = child.name
+                    if add:
+                        self.addchild(prop, child, key)
+                    return child
+        except AttributeError:
+            pass
+        return None
+
+
+# 由此compEnt替代了EntDict及EntList.保存了dict,list所属的Entity,propname.
+@define(slots=True, frozen=False, eq=False)
+class CompEnt(Entity):
+    type: str = field(default="CompEnt")
+    entity: Entity = field(default=None)
+    propname: str = field(default="")
+
+    def addchild(self, prop: str, child, key: str) -> bool:
+        if isinstance(self.entity, Entity):
+            return self.entity.addchild(prop, child, key)
+        return False
+
+    def newchild(self, prop: str, **kwargs):
+        if isinstance(self.entity, Entity):
+            if is_valid_string(prop):
+                kwargs["key"] = prop
+            return self.entity.newchild(self.propname, **kwargs)
+        return None
 
 
 # @define(slots=False)
@@ -63,7 +137,10 @@ class Entity:
 @define(slots=True, frozen=False, eq=False)
 class EntRef(Entity):
     type: str = field(default="EntRef")
-    entrefs: WeakValueDictionary[str:Entity] = field(factory=WeakValueDictionary)
+    # entrefs: WeakValueDictionary[str:Entity] = field(
+    #     factory=WeakValueDictionary
+    # )
+    entrefs: dict[str:Entity] = field(factory=dict)
 
     # 当实体名称变化时，移除旧的实体引用，添加新的实体引用．
     def replace_entity(self, old_name: str, new_name: str, ent) -> None:
@@ -75,7 +152,7 @@ class EntRef(Entity):
     # 获取指定名称的实体对象，mul指示是否返回多个实体，如果为False，返回列表中最后一个实体.
     def get_entity(self, name: str, mul=False):
         ent = self.entrefs.get(name, None)
-        if isinstance(ent, WeakSet):
+        if isinstance(ent, list):  # WeakSet):
             entLen = len(ent)
             if entLen == 0:
                 self.entrefs.pop(name, None)
@@ -98,13 +175,13 @@ class EntRef(Entity):
             from .entity import Entity
 
             oldent = self.entrefs.get(name, None)
-            if isinstance(oldent, WeakSet):
+            if isinstance(oldent, list):
                 oldent.add(ent)
                 return
             elif isinstance(oldent, Entity):
                 if oldent == ent:
                     return
-                self.entrefs[name] = WeakSet([oldent, ent])
+                self.entrefs[name] = list([oldent, ent])
                 return
         self.entrefs[name] = ent
 
@@ -115,7 +192,7 @@ class EntRef(Entity):
             return
         if ent == "all":
             self.entrefs.pop(name, None)
-        elif isinstance(oldent, WeakSet):
+        elif isinstance(oldent, list):
             oldent.remove(ent)
             if len(oldent) == 0:
                 self.entrefs.pop(name, None)
@@ -130,67 +207,14 @@ class EntRef(Entity):
     def keys(self):
         return self.entrefs.keys()
 
-
-@define(slots=True, frozen=False, eq=False)
-class EntList(Entity):
-    type: str = field(default="EntList")
-    data: list[Entity] = field(factory=list)
-    childtype: type = field(default=Entity)
-
-    # 创建子实体并加入data,如果子实体有parent属性,则设置其parent属性为当前实体.
-    def createchild(self, **kwargs) -> type or None:
-        if not callable(self.childtype):
-            return None
-        child = self.childtype(**kwargs)
-        self.data.append(child)
-        if child.has("parent"):
-            child.parent = self
-        return child
-
-
-@define(slots=True, frozen=False, eq=False)
-class EntDict(Entity):
-    type: str = field(default="EntDict")
-    data: dict[str:Entity] = field(factory=dict)
-    childtype: type = field(default=Entity)
-
-    # 创建子实体并加入data,如果子实体有parent属性,则设置其parent属性为当前实体.
-    def createchild(self, key, **kwargs) -> type or None:
-        if not callable(self.childtype):
-            return None
-        child = self.childtype(**kwargs)
-        child.name = key
-        self.data[key] = child
-        if child.has("parent"):
-            child.parent = self
-        return child
-
-    def clear(self):
-        self.data.clear()
-
-    def fromkeys(self, seq, value=None):
-        return self.data.fromkeys(seq, value)
-
-    def get(self, key, default=None):
-        return self.data.get(key, default)
-
-    def items(self):
-        return self.data.items()
-
-    def keys(self):
-        return self.data.keys()
-
-    def pop(self, key, default=None):
-        return self.data.pop(key, default)
-
-    def popitem(self):
-        return self.data.popitem()
-
-    def setdefault(self, key, default=None):
-        return self.data.setdefault(key, default)
-
-    def update(self, *args, **kwargs):
-        return self.data.update(*args, **kwargs)
-
+    # 获取全部引用实体
     def values(self):
-        return self.data.values()
+        return self.entrefs.values()
+
+    # 获取全部引用实体及其名称对
+    def items(self):
+        return self.entrefs.items()
+
+    # # 获取全部引用实体的数量
+    # def __len__(self):
+    #     return len(self.entrefs)
