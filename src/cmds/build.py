@@ -1,9 +1,8 @@
 import click
 from gettext import gettext as _
-from sklearn.pipeline import Pipeline
 
 from store import Store
-from trans import Humod, JobDuty
+from trans import createPipe
 from util.log import LoggerExcept
 
 # import util
@@ -12,15 +11,15 @@ from util.log import LoggerExcept
 
 
 def build(opts: dict) -> None:  # type: ignore[type-arg]
-    pipeline = Pipeline([("load", Humod()), ("jobduty", JobDuty())])
 
     store: Store = Store.instance()
     store.init(opts)
     try:
+        pipeline = createPipe(["humod", "jobduty", "uipage"])
         pipeline.fit_transform(store)
 
         # click.echo(f"result={result}")
-        refskeys = " ".join(store.getctx('humod').keys())
+        refskeys = " ".join(store.getctx("humod").keys())
         click.echo(f"refskeys={refskeys}")
     except LoggerExcept as e:
         pass

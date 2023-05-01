@@ -136,7 +136,8 @@ analysis.__doc__ = _("""analysis workflow""")
 def version() -> None:
     #    click.echo(_("BOT version: %s") % BOT_VERSION)
     rich.print(
-        ("[bold]%s[/bold]: [green]%s[/green]") % (_("BOT version"),BOT_VERSION)
+        ("[bold]%s[/bold]: [green]%s[/green]")
+        % (_("BOT version"), BOT_VERSION)
     )
 
 

@@ -1,5 +1,4 @@
 from attrs import define, field
-from typing import Any
 
 from entity.entity import Entity
 

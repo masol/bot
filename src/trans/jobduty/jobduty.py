@@ -1,14 +1,15 @@
-from sklearn.base import TransformerMixin
+from entity.jobduty import JobDuty as JobDutyEntity
+
+from ..model import Model
 
 
-class JobDuty(TransformerMixin):
+class JobDuty(Model):
     def __init__(self):
+        self.imname = 'humod'
+        self.omname = 'jobduty'
+        self.ometype = JobDutyEntity
         pass
 
-    def fit(self, store):
-        print("enter jobduty fit,pars=")
-        return self
 
-    def transform(self, store):
-        print("enter jobduty transform")
+    def dotransform(self, store):
         return store

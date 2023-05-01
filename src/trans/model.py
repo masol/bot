@@ -1,11 +1,9 @@
-import os
+from gettext import gettext as _
 from rich import pretty
 from sklearn.base import TransformerMixin
 
 import util.log as logger
 from util.str import is_valid_string
-from entity.humod import Humod as HumodEntity
-from gettext import gettext as _
 
 
 class Model(TransformerMixin):
@@ -23,17 +21,31 @@ class Model(TransformerMixin):
                 self.ometype, type
             ):
                 store.models[self.omname] = self.ometype()
-        if is_valid_string(self.imname) and not store.models.get(self.imname, None):
+        if is_valid_string(self.imname) and not store.models.get(
+            self.imname, None
+        ):
             logger.error(
-                _("Invalid input model [bold green]%s[/bold green] for transformer [bold sky_blue2]%s[/bold sky_blue2]")
+                _(
+                    "Invalid input model [bold green]%s[/bold green] for transformer [bold sky_blue2]%s[/bold sky_blue2]"
+                )
                 % (self.imname, self.__class__.__name__)
             )
         isverbose = getattr(store.env, "verbose", False)
         if isverbose:
-            logger.info(_("[cyan3]Enter[/cyan3] fit of [bold sky_blue2]%s[/bold sky_blue2]") % self.__class__.__name__)
+            logger.info(
+                _(
+                    "[cyan3]Enter[/cyan3] fit of [bold sky_blue2]%s[/bold sky_blue2]"
+                )
+                % self.__class__.__name__
+            )
         self.dofit(store)
         if isverbose:
-            logger.info(_("[cyan]Leave[/cyan] fit of [bold sky_blue2]%s[/bold sky_blue2]") % self.__class__.__name__)
+            logger.info(
+                _(
+                    "[cyan]Leave[/cyan] fit of [bold sky_blue2]%s[/bold sky_blue2]"
+                )
+                % self.__class__.__name__
+            )
         return self
 
     def dotransform(self, store):
@@ -43,7 +55,12 @@ class Model(TransformerMixin):
         isverbose = getattr(store.env, "verbose", False)
         dump_models = getattr(store.env, "dump_models", [])
         if isverbose:
-            logger.info(_("[cyan3]Enter[/cyan3] transformer of [bold sky_blue2]%s[/bold sky_blue2]") % self.__class__.__name__)
+            logger.info(
+                _(
+                    "[cyan3]Enter[/cyan3] transformer of [bold sky_blue2]%s[/bold sky_blue2]"
+                )
+                % self.__class__.__name__
+            )
         self.dotransform(store)
         if is_valid_string(self.omname):
             if 'all' in dump_models or self.omname in dump_models:
@@ -56,5 +73,10 @@ class Model(TransformerMixin):
                         % (self.omname, self.__class__.__name__)
                     )
         if isverbose:
-            logger.info(_("[cyan]Leave[/cyan] transformer of [bold sky_blue2]%s[/bold sky_blue2]") % self.__class__.__name__)
+            logger.info(
+                _(
+                    "[cyan]Leave[/cyan] transformer of [bold sky_blue2]%s[/bold sky_blue2]"
+                )
+                % self.__class__.__name__
+            )
         return store

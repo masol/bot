@@ -1,6 +1,6 @@
+import rich
 from click import echo
 from gettext import gettext as _
-import rich
 
 
 class LoggerExcept(Exception):
@@ -19,7 +19,7 @@ def error(*args, noExcept=False) -> None:  # type: ignore[no-untyped-def]
     # 将args拼接成字符串
     message = " ".join(args)
     prefix = _("Error: ")
-    rich.print(f"[bold red]{prefix}[/bold red] {message}")    
+    rich.print(f"[bold red]{prefix}[/bold red] {message}")
     if not noExcept:
         raise LoggerExcept(message)
 

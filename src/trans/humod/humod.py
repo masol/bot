@@ -1,19 +1,15 @@
 import os
 
-from ..model import Model
-from rich import pretty
-from sklearn.base import TransformerMixin
-
-import util.log as logger
-
 from entity.humod import Humod as HumodEntity
+
+from ..model import Model
 from .load import load
 
 
 class Humod(Model):
     def __init__(self):
         self.omname = "humod"
-        self.imname = ''
+        self.imname = ""
         self.ometype = HumodEntity
 
     def dotransform(self, store):
@@ -26,4 +22,3 @@ class Humod(Model):
             "store": store,
         }
         load(src, ctx)
-
