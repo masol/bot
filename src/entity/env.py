@@ -5,10 +5,11 @@ from . import entity
 
 @define(slots=True)
 class Env(entity.Entity):
-    src: str = ''
+    src: str = ""
     type = "Env"
     verbose: bool = field(default=False)
     debug: bool = field(default=False)
+    dump_models: list = field(factory=list)
     log: str = field(default="log")
     loglevel: str = field(default="info")
     logformat: str = field(default="%(asctime)s %(levelname)s %(message)s")

@@ -40,7 +40,9 @@ class Entity:
     def _set_name(self, attribute, value):
         # print("call into _set_name", value, self.name, attribute)
         # 不向context中保存未命名实体．
-        if len(self.ctx) > 0 and (is_valid_string(value) or is_valid_string(self.name)):
+        if len(self.ctx) > 0 and (
+            is_valid_string(value) or is_valid_string(self.name)
+        ):
             from store import Store
 
             inst: Store = Store.instance()

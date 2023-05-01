@@ -1,10 +1,11 @@
 import click
 import click_completion
-import colored
 import gettext
 import os
+import rich
 
 import cmds.build as buildImpl
+from util.str import is_valid_string
 
 # from cmds.build import build as buildImpl  # type: ignore[attr-defined]
 
@@ -85,6 +86,12 @@ def bot() -> None:
 @bot.command(help="generate code from workflow")
 @click.option("--verbose", "-v", is_flag=True, help="Enables verbose mode.")
 @click.option(
+    "--dump-model",
+    "-m",
+    multiple=True,
+    help="Output the model with the specified name.",
+)
+@click.option(
     "--tolerant",
     "-t",
     is_flag=True,
@@ -97,12 +104,17 @@ def bot() -> None:
     help="Directory where output files should be written.Default is target.",
 )
 @click.argument("src", type=str, metavar="SRC(filepath or URL)")
-def build(verbose, tolerant, output_dir, src) -> None:  # type: ignore[no-untyped-def]
+def build(verbose, dump_model, tolerant, output_dir, src) -> None:  # type: ignore[no-untyped-def]
+    dump_models = list()
+    for m in dump_model:
+        if is_valid_string(m):
+            dump_models.extend(m.split(','))
     # 　将参数构建为一个对象．
     opts = {
         "verbose": verbose,
         "tolerant": tolerant,
         "output_dir": output_dir,
+        "dump_models": dump_models,
         "src": src,
     }
     # 　调用build模块的build函数
@@ -123,9 +135,8 @@ analysis.__doc__ = _("""analysis workflow""")
 @bot.command(help="print current bot version")
 def version() -> None:
     #    click.echo(_("BOT version: %s") % BOT_VERSION)
-    click.echo(
-        colored.stylize(_("BOT version:\t"), colored.attr("bold"))
-        + colored.stylize(BOT_VERSION, colored.fg("green"))
+    rich.print(
+        ("[bold]%s[/bold]: [green]%s[/green]") % (_("BOT version"),BOT_VERSION)
     )
 
 

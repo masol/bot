@@ -4,7 +4,7 @@ import textwrap
 from gettext import gettext as _
 
 import util.log as logger
-from entity.entity import ProxyEnt, Entity
+from entity.entity import Entity, ProxyEnt
 from util.str import unquote
 
 
