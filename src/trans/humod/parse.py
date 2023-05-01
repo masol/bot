@@ -4,7 +4,7 @@ import textwrap
 from gettext import gettext as _
 
 import util.log as logger
-from entity.entity import CompEnt, Entity
+from entity.entity import ProxyEnt, Entity
 from util.str import unquote
 
 
@@ -144,7 +144,7 @@ def getentity(node, parent: Entity, ctx) -> Entity or None:
         if isinstance(ent, Entity):
             return ent
         elif ent not in (None, ""):
-            return CompEnt(entity=parent, propname=name)
+            return ProxyEnt(entity=parent, propname=name)
 
         # 创建新的实体.
         if not isinstance(parent, Entity):

@@ -106,10 +106,10 @@ class Entity:
         return None
 
 
-# 由此compEnt替代了EntDict及EntList.保存了dict,list所属的Entity,propname.
+# 由此ProxyEnt替代了EntDict及EntList.保存了dict,list所属的Entity,propname.
 @define(slots=True, frozen=False, eq=False)
-class CompEnt(Entity):
-    type: str = field(default="CompEnt")
+class ProxyEnt(Entity):
+    type: str = field(default="ProxyEnt")
     entity: Entity = field(default=None)
     propname: str = field(default="")
 
