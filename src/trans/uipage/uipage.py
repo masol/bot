@@ -10,6 +10,5 @@ class UIpage(Model):
         self.ometype = UIpageEntity
         pass
 
-
     def dotransform(self, store):
         return store

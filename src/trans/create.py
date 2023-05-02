@@ -1,10 +1,13 @@
+from gettext import gettext as _
+from sklearn.pipeline import Pipeline
+
+import util.log as logger
+
 from .humod.humod import Humod
+from .integrity.integrity import Integrity
 from .jobduty.jobduty import JobDuty
 from .uipage.uipage import UIpage
-from .integrity.integrity import Integrity
-from sklearn.pipeline import Pipeline
-from gettext import gettext as _
-import util.log as logger
+
 
 def createModel(name: str):
     if name == 'humod':
@@ -17,7 +20,8 @@ def createModel(name: str):
         return Integrity()
     else:
         logger.error(_('Unsupported model "%s" were requested') % name)
-    
+
+
 def createPipe(models: list[str]):
     pipes = []
     for modelname in models:

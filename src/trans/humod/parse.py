@@ -7,6 +7,7 @@ import util.log as logger
 from entity.entity import Entity, ProxyEnt
 from util.str import unquote
 
+
 # 如果node是identify类型,则返回identify的名称,否则返回None
 def identify(node: esprima.nodes.Node) -> str or None:
     if node.type == "Identifier":
@@ -44,7 +45,9 @@ def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-ar
 
 
 # 将ast的node转换为value,以赋值给ent的name属性，返回None将不会更新ent的name属性
-def ast2value(ent: Entity, propname: str, node: esprima.nodes.Node, ctx) -> any:
+def ast2value(
+    ent: Entity, propname: str, node: esprima.nodes.Node, ctx
+) -> any:
     if node.type == "Literal":
         if type(node.value) == str:
             return unquote(node.value)
@@ -78,11 +81,14 @@ def ast2value(ent: Entity, propname: str, node: esprima.nodes.Node, ctx) -> any:
     elif node.type == "ObjectExpression":
         child = getattr(ent, propname, None)
         if not isinstance(child, Entity):
-            logger.warn(
-                _('expect Entity node, ignore an invalid node "%s".\n\t%s')
-                % (node.type, nodestr(node, ctx))
-            )
-            return None
+            # 如果child不是Entity类型,则创建一个新的Entity
+            child = ent.newchild(propname)
+            if child is None:
+                logger.warn(
+                    _('expect Entity node, ignore an invalid node "%s".\n\t%s')
+                    % (node.type, nodestr(node, ctx))
+                )
+                return None
         assign2ent(child, node, ctx)
         # 不再将返回值赋值给propname属性
         return None
@@ -141,14 +147,6 @@ def getentity(node, parent: Entity, ctx) -> Entity or None:
             name = name[1:]
 
         ent = getattr(parent, name, None)
-        # refs = parent.getctxobj()
-        # if not refs:
-        #     logger.warn(
-        #         _('when getentity,can not get parent context of "%s" .\n\t%s')
-        #         % (node.type, nodestr(node, ctx))
-        #     )
-        #     return None
-        # ent = refs.get_entity(name)
         if isinstance(ent, Entity):
             return ent
         elif ent not in (None, ""):
@@ -196,7 +194,9 @@ def loadAssign(node, ctx) -> None:
         return
     if node.right.type != "ObjectExpression":
         logger.warn(
-            _("Only object definitions can be assigned to entity objects:\n\t%s")
+            _(
+                "Only object definitions can be assigned to entity objects:\n\t%s"
+            )
             % nodestr(node.right, ctx)
         )
         return
@@ -204,7 +204,8 @@ def loadAssign(node, ctx) -> None:
     ent = getentity(node.left, model, ctx)
     if not isinstance(ent, Entity):
         logger.warn(
-            _('failed to get entity "%s".\n\t%s') % (node.type, nodestr(node, ctx))
+            _('failed to get entity "%s".\n\t%s')
+            % (node.type, nodestr(node, ctx))
         )
         return
     # TODO: 将此实现改为entity的convert.
@@ -280,7 +281,9 @@ def parse(ctx: dict) -> None:  # type: ignore[type-arg]
     # 如果ast根节点不是一个Program,则退出.
 
     if (not ast.type) or (ast.type != "Program") or (not ast.body):
-        logger.error(_('while compiling file "%s":\n\t') % src + _("not a program"))
+        logger.error(
+            _('while compiling file "%s":\n\t') % src + _("not a program")
+        )
         return
     for item in ast.body:
         loadbody(item, ctx)

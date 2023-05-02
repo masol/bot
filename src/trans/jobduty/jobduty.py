@@ -10,6 +10,5 @@ class JobDuty(Model):
         self.ometype = JobDutyEntity
         pass
 
-
     def dotransform(self, store):
         return store
