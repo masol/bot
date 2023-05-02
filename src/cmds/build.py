@@ -1,4 +1,3 @@
-import click
 from gettext import gettext as _
 
 from store import Store
@@ -17,6 +16,5 @@ def build(opts: dict) -> None:  # type: ignore[type-arg]
         pipeline = createPipe(["humod", "integrity", "jobduty", "uipage"])
         pipeline.fit_transform(store)
 
-        # click.echo(f"result={result}")
     except LoggerExcept as e:
         pass
