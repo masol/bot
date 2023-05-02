@@ -11,11 +11,10 @@ from util.log import LoggerExcept
 
 
 def build(opts: dict) -> None:  # type: ignore[type-arg]
-
     store: Store = Store.instance()
     store.init(opts)
     try:
-        pipeline = createPipe(["humod", "jobduty", "uipage"])
+        pipeline = createPipe(["humod", "integrity", "jobduty", "uipage"])
         pipeline.fit_transform(store)
 
         # click.echo(f"result={result}")

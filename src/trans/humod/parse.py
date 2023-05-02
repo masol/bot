@@ -7,7 +7,6 @@ import util.log as logger
 from entity.entity import Entity, ProxyEnt
 from util.str import unquote
 
-
 # 如果node是identify类型,则返回identify的名称,否则返回None
 def identify(node: esprima.nodes.Node) -> str or None:
     if node.type == "Identifier":
@@ -20,6 +19,11 @@ def literal(node: esprima.nodes.Node) -> str or None:
     if node.type == "Literal":
         return node.value
     return None
+
+
+def getcode(node: esprima.nodes.Node, ctx: dict) -> str:
+    content: str = str(ctx.get("content"))
+    return str(content[node.range[0] : node.range[1]])
 
 
 # 获取node的文本内容，用于在错误信息中显示
@@ -40,9 +44,7 @@ def nodestr(node: esprima.nodes.Node, ctx: dict) -> str:  # type: ignore[type-ar
 
 
 # 将ast的node转换为value,以赋值给ent的name属性，返回None将不会更新ent的name属性
-def ast2value(
-    ent: Entity, propname: str, node: esprima.nodes.Node, ctx
-) -> any:
+def ast2value(ent: Entity, propname: str, node: esprima.nodes.Node, ctx) -> any:
     if node.type == "Literal":
         if type(node.value) == str:
             return unquote(node.value)
@@ -84,6 +86,12 @@ def ast2value(
         assign2ent(child, node, ctx)
         # 不再将返回值赋值给propname属性
         return None
+    # elif node.type == "FunctionExpression":
+    #     js_code = getcode(node, ctx)
+    #     print(js_code)
+    #     pyfunc = eval_js(js_code)
+    #     print(pyfunc)
+    #     # print(inspect.getsource(pyfunc))
     else:
         logger.warn(
             'node type "%s" not been supported in ast2value.\n\t%s'
@@ -188,9 +196,7 @@ def loadAssign(node, ctx) -> None:
         return
     if node.right.type != "ObjectExpression":
         logger.warn(
-            _(
-                "Only object definitions can be assigned to entity objects:\n\t%s"
-            )
+            _("Only object definitions can be assigned to entity objects:\n\t%s")
             % nodestr(node.right, ctx)
         )
         return
@@ -198,8 +204,7 @@ def loadAssign(node, ctx) -> None:
     ent = getentity(node.left, model, ctx)
     if not isinstance(ent, Entity):
         logger.warn(
-            _('failed to get entity "%s".\n\t%s')
-            % (node.type, nodestr(node, ctx))
+            _('failed to get entity "%s".\n\t%s') % (node.type, nodestr(node, ctx))
         )
         return
     # TODO: 将此实现改为entity的convert.
@@ -275,9 +280,7 @@ def parse(ctx: dict) -> None:  # type: ignore[type-arg]
     # 如果ast根节点不是一个Program,则退出.
 
     if (not ast.type) or (ast.type != "Program") or (not ast.body):
-        logger.error(
-            _('while compiling file "%s":\n\t') % src + _("not a program")
-        )
+        logger.error(_('while compiling file "%s":\n\t') % src + _("not a program"))
         return
     for item in ast.body:
         loadbody(item, ctx)
