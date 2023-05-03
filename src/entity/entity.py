@@ -54,6 +54,19 @@ class Entity:
             return False
         return True
 
+    def getattr(self, attrname: str, default=None):
+        try:
+            return getattr(self, attrname, default)
+        except AttributeError:
+            return default
+
+    def setattr(self, attrname: str, value: any) -> bool:
+        try:
+            setattr(self, attrname, value)
+        except AttributeError:
+            return False
+        return True
+
     # 　将child赋给指定的属性,如果属性为list,dict,weakset,则将child添加到集合中．
     def addchild(self, prop: str, child, key: str) -> bool:
         attr = getattr(self, prop, None)
@@ -122,6 +135,32 @@ class ProxyEnt(Entity):
                 kwargs["key"] = prop
             return self.entity.newchild(self.propname, **kwargs)
         return None
+
+    def getattr(self, attrname: str, default=None):
+        prop = self.entity.getattr(self.propname, None)
+        if isinstance(prop, dict):
+            return prop.get(attrname, default)
+        elif isinstance(prop, list):
+            try:
+                intvalue = int(attrname)
+                return prop[intvalue]
+            except ValueError:
+                pass
+        return default
+
+    def setattr(self, attrname: str, value: any) -> bool:
+        prop = self.entity.getattr(self.propname, None)
+        if isinstance(prop, dict):
+            prop[attrname] = value
+        elif isinstance(prop, list):
+            try:
+                intvalue = int(attrname)
+                prop[intvalue] = value
+            except ValueError:
+                return False
+        else:
+            return False
+        return True
 
 
 # @define(slots=False)
