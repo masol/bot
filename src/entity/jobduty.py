@@ -11,7 +11,9 @@ class Role(Entity):
 @define(slots=True, frozen=False, eq=False)
 class JobDuty(Entity):
     type: str = field(default="JobDuty")
-    roles: dict[str, Role] = field(factory=dict, metadata={"childtype": Role})
+    roles: "dict[str, Role]" = field(
+        factory=dict, metadata={"childtype": Role}
+    )
 
     def __attrs_post_init__(self):
         from store import Store

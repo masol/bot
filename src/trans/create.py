@@ -22,7 +22,7 @@ def createModel(name: str):
         logger.error(_('Unsupported model "%s" were requested') % name)
 
 
-def createPipe(models: list[str]):
+def createPipe(models: "list[str]"):
     pipes = []
     for modelname in models:
         pipes.append((modelname, createModel(modelname)))

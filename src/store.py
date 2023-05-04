@@ -9,7 +9,7 @@ from entity.env import Env
 @define(slots=True)
 class Store:
     env: Env = field(metadata={"desc": ""}, default=None)
-    models: dict[str:Entity] = field(default={})
+    models: "dict[str:Entity]" = field(default={})
 
     def init(self, opts: dict) -> None:
         self.env = Env(**opts)

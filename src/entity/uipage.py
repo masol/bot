@@ -11,7 +11,9 @@ class Page(Entity):
 @define(slots=True, frozen=False, eq=False)
 class UIpage(Entity):
     type: str = field(default="JobDuty")
-    pages: dict[str, Page] = field(factory=dict, metadata={"childtype": Page})
+    pages: "dict[str, Page]" = field(
+        factory=dict, metadata={"childtype": Page}
+    )
 
     # def __attrs_post_init__(self):
     #     from store import Store
