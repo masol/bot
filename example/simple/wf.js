@@ -8,7 +8,7 @@ $wfs.购物 =  {
         "subj": "用户",
         "pred": "购买",
         "obj": "商品",
-        "submits": [{
+        "cncnt": [{
         },{
         }]
       },
@@ -16,7 +16,7 @@ $wfs.购物 =  {
         "subj": "商家",
         "pred": "发送",
         "obj": "商品",
-        "submits": []
+        "cncnt": []
       }
     ]
  }

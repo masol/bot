@@ -1,6 +1,7 @@
 -i https://pypi.org/simple
 --extra-index-url https://pypi.tuna.tsinghua.edu.cn/simple
 anytree==2.8.0
+appdirs==1.4.4
 attrs==23.1.0
 btrees==5.0 ; python_version >= '3.7'
 certifi==2022.12.7 ; python_version >= '3.6'
@@ -41,7 +42,7 @@ tzdata==2023.3 ; python_version >= '3.6'
 tzlocal==4.3 ; python_version >= '3.7'
 urllib3==1.26.15 ; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5'
 zc.lockfile==3.0.post1 ; python_version >= '3.7'
-zconfig==3.6.1
+zconfig==4.0 ; python_version >= '3.7'
 zodb==5.8.0
 zodbpickle==3.0.1 ; python_version >= '3.7'
 zope.interface==6.0 ; python_version >= '3.7'
