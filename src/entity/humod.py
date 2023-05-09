@@ -43,18 +43,22 @@ class Subj(Entity):
 class Pred(Entity):
     class Determine(Enum):
         invalid = 0
-        GET = auto()  # 获取信息
-        PUT = auto()  # 提交信息
-        SELONE = auto()  # 从类集中选择一个
-        SELMD = auto()  # 从类集中选多个(直接模式)
-        SELMS = auto()  # 从类集中选多个(可缓存模式-例如购物车)
-        MANAGE = auto()  # 管理信息，要增删改查
-        APPROVE = auto()  # 审批信息，显示同意，拒绝状态．
-        ACT = auto()  # 执行其它流程
+        GET = 0x7528035A93EE69CEDB1DBDDB2F0BFCC8  # 获取信息
+        PUT = 0x3E75383A5992A6D15FB81E872E46E256  # 提交信息
+        SELONE = 0xE300B17B4A4729788A2C3BD920E8E0EC  # 从类集中选择一个
+        SELMD = (
+            0x371E624E59DFE59A15B5628286070044  # 从类集中选多个(直接模式),自动将流程拆分为多个流程
+        )
+        SELMS = 0x902FC3E1087827A338E5C5F403E298F3  # 从类集中选多个(可缓存模式-例如购物车)，自动将流程拆分为多个并行执行．
+        MANAGE = 0x92814A387D2FE972E8AA877BC152980C  # 管理信息，要增删改查
+        APPROVE = 0xED36B4A24E02A8786F52126DE566CF69  # 审批信息，显示同意，拒绝状态．
+        # ACT = auto()  # 执行其它流程
 
     type: str = field(default="Pred")
     # 谓语(buildin: get:  2. put: 提交信息. 3. selone: 从类集中选择一个. 4 selmd: 从类集中选多个(直接模式).5 selms: 从类集中选多个(可缓存模式-例如购物车) 6. act: 执行其它流程．)
     dtrm: Determine = field(default=0)
+    # act: 执行其它流程时，需要执行的流程名．
+    act: str = field(default="")
 
 
 @define(slots=True, frozen=False, eq=False)
@@ -81,7 +85,7 @@ class Behave(Entity):
     obj: str = field(default="")
     # 如果需要提交信息，这里列出需要提交的信息名称及格式
     datas: "dict[str:any]" = field(factory=dict)
-    # -1: 下一行为 >=0 为跳转行为序号
+    # -1: 下一行为 -2: 留在此行为 -3: 结束流程 >=0 为跳转行为序号
     next: int = field(default=-1)
     # 相同主语的附加的其它可选动作.(例如审批，当前行为在同一界面同时存在)
     cncnt: "list[Cncnt]" = field(factory=list, metadata={"childtype": Cncnt})
@@ -91,7 +95,9 @@ class Behave(Entity):
 class Workflow(Entity):
     type: str = field(default="Workflow")
     dtd: str or Entity = field(default="", metadata={"childtype": Dtd})
-    behaves: "list[str, Behave]" = field(factory=list, metadata={"childtype": Behave})
+    behaves: "list[str, Behave]" = field(
+        factory=list, metadata={"childtype": Behave}
+    )
 
 
 @define(slots=True, frozen=False, eq=False)
@@ -103,9 +109,13 @@ class Role(Entity):
 @define(slots=True, frozen=False, eq=False)
 class Humod(Entity):
     type: str = field(default="Humod")
-    wfs: "dict[str, Workflow]" = field(factory=dict, metadata={"childtype": Workflow})
+    wfs: "dict[str, Workflow]" = field(
+        factory=dict, metadata={"childtype": Workflow}
+    )
     dtds: "dict[str, Dtd]" = field(factory=dict, metadata={"childtype": Dtd})
-    roles: "dict[str, Role]" = field(factory=dict, metadata={"childtype": Role})
+    roles: "dict[str, Role]" = field(
+        factory=dict, metadata={"childtype": Role}
+    )
 
     # def __attrs_post_init__(self):
     #     from store import Store

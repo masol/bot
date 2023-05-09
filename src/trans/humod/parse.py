@@ -19,6 +19,8 @@ def identify(node: esprima.nodes.Node) -> str or None:
 def literal(node: esprima.nodes.Node) -> str or None:
     if node.type == "Literal":
         return node.value
+    elif node.type == 'Identifier':
+        return node.name
     return None
 
 
@@ -92,6 +94,27 @@ def ast2value(
         assign2ent(child, node, ctx)
         # 不再将返回值赋值给propname属性
         return None
+    elif node.type == "UnaryExpression":
+        if node.operator == "-":
+            return -ast2value(ent, propname, node.argument, ctx)
+        elif node.operator == "+":
+            return ast2value(ent, propname, node.argument, ctx)
+        elif node.operator == "!":
+            return not ast2value(ent, propname, node.argument, ctx)
+        elif node.operator == "~":
+            return ~ast2value(ent, propname, node.argument, ctx)
+        elif node.operator == "typeof":
+            return type(ast2value(ent, propname, node.argument, ctx)).__name__
+        elif node.operator == "void":
+            return None
+        elif node.operator == "delete":
+            return None
+        else:
+            logger.warn(
+                _('ignore an invalid operator "%s".\n\t%s')
+                % (node.operator, nodestr(node, ctx))
+            )
+        pass
     # elif node.type == "FunctionExpression":
     #     js_code = getcode(node, ctx)
     #     print(js_code)

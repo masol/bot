@@ -139,6 +139,15 @@ def version() -> None:
         ("[bold]%s[/bold]: [green]%s[/green]")
         % (_("BOT version"), BOT_VERSION)
     )
+    from util.spacy import Spacy, model_version
+
+    Spacy.instance()
+
+    spacy_ver = model_version() or _('not installed')
+    rich.print(
+        ("[bold]%s[/bold]: [green]%s[/green]")
+        % (_("Spacy model version"), spacy_ver)
+    )
 
 
 version.__doc__ = _("""current version""")

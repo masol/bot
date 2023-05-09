@@ -16,6 +16,15 @@ def unquote(txt: str) -> str:
     return txt
 
 
+# 获取字符串的md5 hash值.
+# 不采用sha,因为sha的hash值太长了.
+def md5hash(txt: str) -> int:
+    import hashlib
+
+    hash_object = hashlib.md5(txt.encode())
+    return int(hash_object.hexdigest(), 16)
+
+
 def is_valid_string(s):
     """Check if a variable is a valid string and has length greater than zero."""
     return isinstance(s, str) and len(s) > 0
