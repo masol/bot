@@ -83,32 +83,34 @@ def bot() -> None:
     # click.echo(os.path.dirname(__file__))
 
 
-@bot.command(help="generate code from workflow")
+@bot.command(help=_("generate code from workflow"))
 @click.option("--verbose", "-v", is_flag=True, help="Enables verbose mode.")
 @click.option(
     "--dump-model",
     "-m",
     multiple=True,
-    help="Output the model with the specified name.",
+    help=_("Output the model with the specified name."),
 )
 @click.option(
     "--tolerant",
     "-t",
     is_flag=True,
-    help="Tolerate a few cases of syntax errors",
+    help=_("Tolerate a few cases of syntax errors"),
 )
 @click.option(
     "-o",
     "--output-dir",
     type=click.Path(dir_okay=False),
-    help="Directory where output files should be written.Default is target.",
+    help=_(
+        "Directory where output files should be written.Default is target."
+    ),
 )
 @click.argument("src", type=str, metavar="SRC(filepath or URL)")
 def build(verbose, dump_model, tolerant, output_dir, src) -> None:  # type: ignore[no-untyped-def]
     dump_models = list()
     for m in dump_model:
         if is_valid_string(m):
-            dump_models.extend(m.split(','))
+            dump_models.extend(m.split(","))
     # 　将参数构建为一个对象．
     opts = {
         "verbose": verbose,
@@ -133,21 +135,24 @@ analysis.__doc__ = _("""analysis workflow""")
 
 
 @bot.command(help="print current bot version")
-def version() -> None:
+@click.option("--verbose", "-v", is_flag=True, help=_("Enables verbose mode."))
+def version(verbose) -> None:
     #    click.echo(_("BOT version: %s") % BOT_VERSION)
     rich.print(
         ("[bold]%s[/bold]: [green]%s[/green]")
         % (_("BOT version"), BOT_VERSION)
     )
-    from util.spacy import Spacy, model_version
+    if verbose:
+        from simple_spinner.spinner import Spinner
 
-    Spacy.instance()
+        with Spinner(desc="check spacy model version"):
+            from util.spacy import Spacy
 
-    spacy_ver = model_version() or _('not installed')
-    rich.print(
-        ("[bold]%s[/bold]: [green]%s[/green]")
-        % (_("Spacy model version"), spacy_ver)
-    )
+            spacy_ver = Spacy.instance().model_version() or _("not installed")
+        rich.print(
+            ("\t[bold]%s[/bold]: [green]%s[/green]")
+            % (_("Spacy model version"), spacy_ver)
+        )
 
 
 version.__doc__ = _("""current version""")
