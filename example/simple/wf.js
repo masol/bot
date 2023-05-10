@@ -6,7 +6,7 @@ $wfs.购物 = {
   behaves: [
     {
       subj: "买家",
-      pred: "购买",
+      pred: "多选",
       obj: "商品",
     },
     {

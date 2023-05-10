@@ -1,4 +1,3 @@
-import os
 import spacy
 from gettext import gettext as _
 from singleton.singleton import Singleton
