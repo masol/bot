@@ -1,16 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_submodules, collect_data_files
+import spacy
 
+# 添加Spacy到hiddenimports中
+hiddenimports = ["spacy"]
+
+# 收集data文件
+datas = collect_data_files('spacy')
 
 block_cipher = None
 
 a = Analysis(
-    ['src/__main__.py'],
-    pathex=['src'],
+    ["src/__main__.py"],
+    pathex=["src"],
     binaries=[],
-    datas=[],
-    hiddenimports=[],
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -27,7 +33,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='bot',
+    name="bot",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -47,5 +53,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='',
+    name="",
 )
