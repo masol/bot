@@ -1,6 +1,18 @@
 #!/usr/bin/env bash
 
-sudo apt-get install -y pip libsqlite3-dev
+if ! command -v swipl &> /dev/null
+then
+    echo "SWI-Prolog is not installed. Do you want to install it now? (y/n)"
+    if [ "$answer" = "y" ]; then
+        sudo apt-add-repository -y ppa:swi-prolog/stable
+        sudo apt-get -y update
+        sudo apt-get -y install swi-prolog
+    else
+        echo "Installation cancelled."
+        exit 1
+    fi
+fi
+sudo apt-get install -y pip libsqlite3-dev swi-prolog python3-testresources
 output=$(tail -n 1 ~/.bashrc | grep 'echo export PATH=$HOME/.local/bin:$PATH')
 if [ -z "$output" ]; then
   echo "Not set path, set path"

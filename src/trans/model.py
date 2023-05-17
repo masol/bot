@@ -15,7 +15,20 @@ class Model(TransformerMixin):
     def dofit(self, store):
         pass
 
+    @property
+    def omodel(self):
+        if self.store and self.omname:
+            return self.store.models.get(self.omname, None)
+        return None
+
+    @property
+    def imodel(self):
+        if self.store and self.imname:
+            return self.store.models.get(self.imname, None)
+        return None
+
     def fit(self, store):
+        self.store = store
         if is_valid_string(self.omname):
             if not store.models.get(self.omname, None) and isinstance(
                 self.ometype, type
@@ -52,6 +65,7 @@ class Model(TransformerMixin):
         pass
 
     def transform(self, store):
+        self.store = store
         isverbose = getattr(store.env, "verbose", False)
         dump_models = getattr(store.env, "dump_models", [])
         if isverbose:

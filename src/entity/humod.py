@@ -9,10 +9,23 @@ class Dtd(Entity):
     type: str = field(default="Dtd")
 
 
+@define(slots=True, frozen=False, eq=False)
+class Adv(Entity):
+    class Determine(Enum):
+        invalid = 0
+        TIMEOUT = auto()  # 超时委托系统自动执行(例如自动取消订单)
+
+    type: str = field(default="Adv")
+    dtrm: Determine = field(default=0)
+    datas: "dict[str:any]" = field(factory=dict)
+
+
 # Concurrent behave.(可并发行为,相同主语的其它可选动作.)
 @define(slots=True, frozen=False, eq=False)
 class Cncnt(Entity):
     type: str = field(default="Cncnt")
+    # 状语:
+    adv: str or Adv = field(default="")
     # 需要执行的动作,与谓语相同
     pred: str = field(default="")
     # 宾语
@@ -30,13 +43,14 @@ class Subj(Entity):
         ROLE = auto()
         WF = auto()
         PREOBJ = auto()
+        MODIF = auto()
 
     type: str = field(default="Subj")
     # 主语筛选器模式．(buildin: role: 拥有指定角色标志的任意访问者 2. wf: 工作流程中前置角色相同. 3. obj: 通过前置行为的宾语关联．)
     # 通用形式为一个Transformer
     dtrm: Determine = field(default=0)
-    # 为主语筛选器提供的参数．(role: 角色名. wf: 索引的工作流程前置角色. obj: 宾语名.)
-    paras: "dict[str:any]" = field(factory=dict)
+    # 为主语筛选器提供的参数．(role: 角色名. wf: 索引的工作流程前置角色. obj: 宾语名. modif: 筛选器)
+    paras: "dict[str:str]" = field(factory=dict)
 
 
 @define(slots=True, frozen=False, eq=False)
@@ -65,11 +79,11 @@ class Pred(Entity):
 class Obj(Entity):
     class Determine(Enum):
         invalid = 0
-        DEPWF = auto()  # 通过依赖流程提交的信息来决定.
+        MODIF = auto()        
 
     type: str = field(default="Obj")
     dtrm: Determine = field(default=0)
-    datas: "dict[str:any]" = field(factory=dict)
+    datas: "dict[str:str]" = field(factory=dict)
 
 
 @define(slots=True, frozen=False, eq=False)
@@ -77,12 +91,16 @@ class Behave(Entity):
     type: str = field(default="Behave")
     # 是否是一个行为,系统只与行为交换信息，而动作不交换信息，只辅助人类．
     isBehave: bool = field(default=True)
+    # 　完整的一句话，描述行为．
+    stm: str = field(default="")
     # 主语
-    subj: str = field(default="")
+    subj: str or Subj = field(default="")
+    # 状语:
+    adv: str or Adv = field(default="")
     # 谓语
-    pred: str = field(default="")
+    pred: str or Pred = field(default="")
     # 宾语
-    obj: str = field(default="")
+    obj: str or Obj = field(default="")
     # 如果需要提交信息，这里列出需要提交的信息名称及格式
     datas: "dict[str:any]" = field(factory=dict)
     # -1: 下一行为 -2: 留在此行为 -3: 结束流程 >=0 为跳转行为序号
@@ -118,7 +136,7 @@ class Humod(Entity):
     )
 
     # def __attrs_post_init__(self):
-    #     from store import Store
+    #     from store import Storew
 
     #     inst: Store = Store.instance()
     #     ctx = inst.getctx(HUMOD_CTX_NAME)
