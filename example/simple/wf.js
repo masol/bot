@@ -1,8 +1,5 @@
 $include("wf.js");
 $wfs.购物 = {
-  name: "购物",
-  dtd: "购物",
-  test: 123,
   behaves: [
     {
       subj: "拥有蓝标的买家",
@@ -31,6 +28,30 @@ $wfs.购物 = {
     },
   ],
 };
+
+
+$wfs.上架 = {
+  behaves: [
+    {
+      subj: "商家",
+      pred: "管理",
+      obj: "商品",
+      datas: {
+        "名称": "",
+        "价格": "",
+        "库存": "",
+        "描述": "",
+        "图片": "",
+      }
+    },
+    {
+      subj: "管理员",
+      pred: "审核",
+      obj: "商品",
+    },
+  ],
+};
+
 
 // this is a comment
 class 商品 {}

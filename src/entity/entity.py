@@ -75,7 +75,10 @@ class Entity:
         elif isinstance(attr, dict):
             if is_valid_string(key):
                 attr[key] = child
+            elif isinstance(child, dict):
+                setattr(self, prop, child)
             else:
+                print("key is empty:", key)
                 logger.warn(
                     _(
                         "adding empty key '%s' of entity(dict type),factory should be list?"
@@ -112,8 +115,11 @@ class Entity:
                     if add:
                         self.addchild(prop, child, key)
                     return child
-        except AttributeError:
-            pass
+        except (AttributeError, KeyError):
+            logger.warn(
+                _("the field '%s' of entity '%s' has no metadata.childtype")
+                % (prop, self.type)
+            )
         return None
 
 
