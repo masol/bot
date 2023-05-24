@@ -1,5 +1,7 @@
-from util.spacy import Spacy
 import xml.etree.ElementTree as ET
+
+from util.spacy import Spacy
+
 
 class HumodDict:
     """Dictionary for Humod."""
