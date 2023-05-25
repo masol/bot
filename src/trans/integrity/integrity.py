@@ -44,13 +44,35 @@ class Integrity(Model):
             # 此宾语引用外部流程表.
             if bh.pred.outobj:
                 objinfo = self.imodel.findobj(name)
-                if not objinfo:
-                    logger.error(
-                        _(
-                            "object '%s' reference outside workflow,but can not found it."
+                if objinfo:
+                    # 为方便后续wfcache，这里需要提前处理obj所属工作流
+                    depwf = objinfo["wf"]
+                    self.loadwf(depwf)
+                    # 将dep加入本流程。
+                    wf.dep.append(objinfo["wfname"])
+                else:
+                    # todo: 收集全部relation,rel为数组，而不是一个rel
+                    rel = self.imodel.findrel(name)
+                    if not rel:
+                        logger.error(
+                            _(
+                                "object '%s' reference outside workflow,but can not found it."
+                            )
+                            % (name)
                         )
-                        % (name)
-                    )
+                    notdtrm = ""
+                    for input in rel.input:
+                        objinfo = self.imodel.findobj(input)
+                        if not objinfo:
+                            notdtrm = input
+                            break
+                    if notdtrm:
+                        logger.error(
+                            _(
+                                "can not determine object '%s', input '%s' in relation '%s' can not determine."
+                            )
+                            % (name, input, rel.name)
+                        )
                 newobj = Obj(name=name, table=objinfo["table"], field=objinfo["field"])
                 bh.obj = newobj
 
@@ -70,6 +92,7 @@ class Integrity(Model):
     def dtrmpred(self, ctx: dict):
         bh = ctx["bh"]
         wf = ctx["wf"]
+        wfcache = ctx["wfcache"]
         self.normpred(bh)
         name = bh.pred.name
         if not is_valid_string(name):
@@ -93,6 +116,27 @@ class Integrity(Model):
                     fieldtype[obj] = "str"
                 else:
                     fieldtype = bh.datas
+            elif pred.outobj:
+                # @todo: 将这里与上面dtrmobj中的获取obj代码合并
+                objname = bh.obj
+                if isinstance(bh.obj, Obj):
+                    objname = bh.obj.name
+                objinfo = self.imodel.findobj(objname)
+                if not objinfo:
+                    logger.warn(
+                        _(
+                            "object '%s' reference outside workflow,but can not found it."
+                        )
+                        % (name)
+                    )
+                else:
+                    wfcache[bh.fieldname(ctx["index"])] = objinfo["table"]
+                    fieldtype = "$%s:%s.%s" % (
+                        fieldtype,
+                        objinfo["table"],
+                        objinfo["field"],
+                    )
+                pass
             self.omodel.dtdfield(
                 wf.dtd or wf.name,
                 bh.fieldname(ctx["index"]),
@@ -101,13 +145,14 @@ class Integrity(Model):
 
     def dtrmsubj(
         self,
-        ctx: dict[
+        ctx: """dict[
             "index":int, "notbhcount":int, "bh":Behave, "wf":Workflow, "orig":Workflow
-        ],
+        ]""",
     ):
         bh = ctx["bh"]
         orig = ctx["orig"]
         wf = ctx["wf"]
+        wfcache = ctx["wfcache"]
         if bh.subj and not isinstance(bh.subj, Subj):
             if not is_valid_string(bh.subj):
                 logger.error(_("behave subject '%s' is not a valid string") % (bh.subj))
@@ -124,16 +169,25 @@ class Integrity(Model):
                     bh.subj = Subj(dtrm=Subjdtrm.WF, name=name)
                     bh.subj.paras["role"] = name
                     bh.subj.table = orig.name
-                else:  # 开始寻找上一个宾语的对应字段．
-                    bh.subj = Subj(dtrm=Subjdtrm.PREOBJ, name=name)
+                else: 
+                    #@todo: 开始寻找上一个宾语的对应字段．
+                    for key,value in wfcache.items():
+                        dtd = self.omodel.dtds.get(value,None)
+                        if dtd and name in dtd.fields:
+                            bh.subj = Subj(dtrm=Subjdtrm.PREOBJ, name=name,paras={"self":key,"field":name,"table":value})
+                            break
+                    if not isinstance(bh.subj,Subj):
+                        bh.subj = Subj(dtrm=Subjdtrm.ALLOC, name=name)
 
-            print("convert subj to object:", bh.subj)
+            # print("convert subj to object:", bh.subj)
 
     def loadwf(self, origwf):
         # 已经加载完毕的流程不再加载．
         if origwf.name in self.omodel.wfs:
             return
         wf = copy.copy(origwf)
+        # 缓冲可以索引的外部表格及本表字段,key为本表字段，value为索引表格
+        wfcache = {}
         notbhcount = 0
         for index, bh in enumerate(wf.behaves):
             ctx = {
@@ -142,6 +196,7 @@ class Integrity(Model):
                 "bh": bh,
                 "wf": wf,
                 "orig": origwf,
+                "wfcache": wfcache,
             }
             if not bh.isBehave:
                 notbhcount += 1
@@ -156,6 +211,7 @@ class Integrity(Model):
             for index, bh in enumerate(wf.behaves):
                 self.normpred(bh)
 
+        self.omodel.rls = copy.copy(self.imodel.rls)
         for name, wf in self.imodel.wfs.items():
             if not wf.kc:
                 self.loadwf(wf)

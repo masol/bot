@@ -14,6 +14,13 @@ class Subjdtrm(Enum):
     MODIF = auto()
 
 
+class Reldtrm(Enum):
+    invalid = ""
+    HTTP = "http"  # http第三方调用
+    FUNCTION = "func"  # 函数调用
+    MATH = "math"  # 数学关系
+
+
 # 基础数据操作
 class Dataop(Enum):
     invalid = 0
@@ -154,12 +161,17 @@ class Workflow(Entity):
     # 本流程是否是一个知识库条目．知识库条目只有被依赖时才引入系统．
     kc: bool = field(default=False)
     behaves: "list[str, Behave]" = field(factory=list, metadata={"childtype": Behave})
+    dep: "list[str]" = field(factory=list)
 
+    # 寻找本流程中指定index之前是否有对应主语
     def hasprevsubj(self, name: str, idx: int):
         for index, bh in enumerate(self.behaves):
             if index >= idx:
                 break
-            if bh.subj == name:
+            subjname = bh.subj
+            if isinstance(bh.subj, Subj):
+                subjname = bh.subj.name
+            if subjname == name:
                 return True
         return False
 
@@ -185,11 +197,21 @@ class Role(Entity):
     # 该角色的工作流程
 
 
+# 直接定义关系通常是不需要的，而是使用流程描述关系。
+@define(slots=True, frozen=False, eq=False)
+class Relation(Entity):
+    type: str = field(default="Relation")
+    dtrm: str = field(default=Reldtrm.invalid.value)
+    output: str = field(default="")
+    input: "list[str]" = field(factory=list, metadata={"childtype": str})
+
+
 @define(slots=True, frozen=False, eq=False)
 class Humod(Entity):
     type: str = field(default="Humod")
     wfs: "dict[str, Workflow]" = field(factory=dict, metadata={"childtype": Workflow})
     dtds: "dict[str, Dtd]" = field(factory=dict, metadata={"childtype": Dtd})
+    rls: "dict[str,Relation]" = field(factory=dict, metadata={"childtype": Relation})
     roles: "dict[str, Role]" = field(factory=dict, metadata={"childtype": Role})
 
     # def __attrs_post_init__(self):
@@ -217,9 +239,19 @@ class Humod(Entity):
 
     # 在wfs中查找名词name
     def findobj(self, name: str):
-        for wfname,wf in self.wfs.items():
+        for wfname, wf in self.wfs.items():
             objinfo = wf.findobj(name)
             if isinstance(objinfo, dict):
                 objinfo["wf"] = wf
+                objinfo["wfname"] = wf.name
                 return objinfo
+        return None
+
+    # 在relation中寻找指定输出所对应的relation entity.
+    def findrel(self, name: str):
+        for rlname, rel in self.rls.items():
+            # relation name.
+            outputname = rel.output or rel.name
+            if outputname == name:
+                return rel
         return None

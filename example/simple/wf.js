@@ -52,7 +52,13 @@ $wfs.上架 = {
   ],
 };
 
-
+$rls.物流信息 = {
+  dtrm: 'http',
+  output: "物流信息",
+  input: [
+    "发货单号"
+  ]
+}
 // this is a comment
 class 商品 {}
 
