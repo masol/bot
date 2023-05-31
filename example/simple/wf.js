@@ -52,6 +52,21 @@ $wfs.上架 = {
   ],
 };
 
+$dtds.测试 = {
+  fields: {
+    a: "int",
+    b: "int"
+  },
+  datas: [
+    {
+      a: 1
+    },
+    {
+      b: 2
+    }
+  ]
+}
+
 $rls.物流信息 = {
   dtrm: 'http',
   output: "物流信息",
@@ -60,6 +75,6 @@ $rls.物流信息 = {
   ]
 }
 // this is a comment
-class 商品 {}
+class 商品 { }
 
-function 用户() {}
+function 用户() { }

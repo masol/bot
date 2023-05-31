@@ -2,9 +2,18 @@ import copy
 from gettext import gettext as _
 
 import util.log as logger
-from entity.humod import Behave
-from entity.humod import Humod, Subj, Subjdtrm, Workflow, Pred, Dataop, Obj
-from util.str import is_valid_string
+from entity.humod import (
+    Behave,
+    Dataop,
+    Humod,
+    Obj,
+    Pred,
+    Subj,
+    Subjdtrm,
+    Workflow,
+)
+from store import Store
+from util.str import is_valid_string, md5hash
 
 from ..model import Model
 
@@ -29,6 +38,7 @@ class Integrity(Model):
             )
             return store
 
+        print("%x" % md5hash("ACLGRANT"))
         # self.humodict = HumodDict()
         # self.humodict.load(imodel)
 
@@ -73,19 +83,25 @@ class Integrity(Model):
                             )
                             % (name, input, rel.name)
                         )
-                newobj = Obj(name=name, table=objinfo["table"], field=objinfo["field"])
+                newobj = Obj(
+                    name=name, table=objinfo["table"], field=objinfo["field"]
+                )
                 bh.obj = newobj
 
     # 将谓语转换为谓语对象．
     def normpred(self, bh: Behave):
         if bh.pred and not isinstance(bh.pred, Pred):
             if not is_valid_string(bh.pred):
-                logger.error(_("behave predict '%s' is not a valid string") % (bh.pred))
+                logger.error(
+                    _("behave predict '%s' is not a valid string") % (bh.pred)
+                )
             name = bh.pred
             newpred = Dataop.mapbasic(name)
             if not isinstance(newpred, Pred):
                 # todo: 这是一个复合谓语，开始检索知识库，以确定谓语对象．并赋值给newpred.
-                logger.error(_("compound predict not implement: '%s'") % (name))
+                logger.error(
+                    _("compound predict not implement: '%s'") % (name)
+                )
                 pass
             bh.pred = newpred
 
@@ -96,7 +112,9 @@ class Integrity(Model):
         self.normpred(bh)
         name = bh.pred.name
         if not is_valid_string(name):
-            logger.error(_("behave predict '%s' is not a valid string") % (name))
+            logger.error(
+                _("behave predict '%s' is not a valid string") % (name)
+            )
 
         pred = bh.pred
         # todo: 处理状语．以确定执行时机.
@@ -108,9 +126,13 @@ class Integrity(Model):
             if pred.filedtype == "json":
                 if not bh.datas:
                     # todo: 这里检索知识库，以确定dict.
-                    logger.warn(
-                        _("can not found type define of '%s', assume it's a string")
-                        % (obj)
+                    Store.instance().env.warn(
+                        "a001",
+                        _(
+                            "Cannot precisely deduce the type of '%s' in workflow '%s'."
+                        )
+                        % (obj, wf.name),
+                        _("Assuming it is an object containing a string"),
                     )
                     fieldtype = {}
                     fieldtype[obj] = "str"
@@ -155,7 +177,9 @@ class Integrity(Model):
         wfcache = ctx["wfcache"]
         if bh.subj and not isinstance(bh.subj, Subj):
             if not is_valid_string(bh.subj):
-                logger.error(_("behave subject '%s' is not a valid string") % (bh.subj))
+                logger.error(
+                    _("behave subject '%s' is not a valid string") % (bh.subj)
+                )
             name = bh.subj
             if ctx["index"] - ctx["notbhcount"] == 0:
                 bh.subj = Subj(dtrm=Subjdtrm.ROLE, name=name)
@@ -169,15 +193,24 @@ class Integrity(Model):
                     bh.subj = Subj(dtrm=Subjdtrm.WF, name=name)
                     bh.subj.paras["role"] = name
                     bh.subj.table = orig.name
-                else: 
-                    #@todo: 开始寻找上一个宾语的对应字段．
-                    for key,value in wfcache.items():
-                        dtd = self.omodel.dtds.get(value,None)
+                else:
+                    # @todo: 开始寻找上一个宾语的对应字段．
+                    for key, value in wfcache.items():
+                        dtd = self.omodel.dtds.get(value, None)
                         if dtd and name in dtd.fields:
-                            bh.subj = Subj(dtrm=Subjdtrm.PREOBJ, name=name,paras={"self":key,"field":name,"table":value})
+                            bh.subj = Subj(
+                                dtrm=Subjdtrm.PREOBJ,
+                                name=name,
+                                paras={
+                                    "self": key,
+                                    "field": name,
+                                    "table": value,
+                                },
+                            )
                             break
-                    if not isinstance(bh.subj,Subj):
+                    if not isinstance(bh.subj, Subj):
                         bh.subj = Subj(dtrm=Subjdtrm.ALLOC, name=name)
+                        self.omodel.enumfield("user", "role", name)
 
             # print("convert subj to object:", bh.subj)
 
@@ -212,6 +245,7 @@ class Integrity(Model):
                 self.normpred(bh)
 
         self.omodel.rls = copy.copy(self.imodel.rls)
+        self.omodel.dtds = copy.copy(self.imodel.dtds)
         for name, wf in self.imodel.wfs.items():
             if not wf.kc:
                 self.loadwf(wf)

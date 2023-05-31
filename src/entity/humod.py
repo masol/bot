@@ -31,6 +31,8 @@ class Dataop(Enum):
     SELMS = 0x902FC3E1087827A338E5C5F403E298F3  # 从类集中选多个(可缓存模式-例如购物车)，自动将流程拆分为多个并行执行．
     MANAGE = 0x92814A387D2FE972E8AA877BC152980C  # 管理信息，要增删改查
     APPROVE = 0xED36B4A24E02A8786F52126DE566CF69  # 审批信息，显示同意，拒绝状态．
+    ACLREQUEST = 0x3AFE20F637B3B9304DADF9AEDA009BA3  # 申请权限．例如申请商家角色．
+    # ACLGRANT = 0x35E841A48B174AF7917ABF15E6345A09  # 批准权限，例如给予商家角色．
 
     # pred是否映射一个基础操作．
     @staticmethod
@@ -38,10 +40,21 @@ class Dataop(Enum):
         switcher = {
             "获取": Pred(act=Dataop.GET, writable=False, outobj=True),
             "查看": Pred(act=Dataop.GET, writable=False, outobj=True),
+            # 申请操作为为提交操作，需写入user table.独立出来可以少一个属性．
+            "申请": Pred(act=Dataop.ACLREQUEST, writable=True, filedtype="acl"),
+            # 将给予权限的操作映射为提交操作．(通过后缀"XX角色"及"XX权限"判断．)
             "提交": Pred(act=Dataop.PUT, writable=True, filedtype="json"),
-            "单选": Pred(act=Dataop.SELONE, writable=True, filedtype="id", outobj=True),
-            "多选": Pred(act=Dataop.SELMD, writable=True, filedtype="array", outobj=True),
-            "选择": Pred(act=Dataop.SELMS, writable=True, filedtype="cache", outobj=True),
+            "给予": Pred(act=Dataop.PUT, writable=True, filedtype="json"),
+            # "给予": Pred(act=Dataop.ACLGRANT, writable=True, filedtype="acl"),            
+            "单选": Pred(
+                act=Dataop.SELONE, writable=True, filedtype="id", outobj=True
+            ),
+            "多选": Pred(
+                act=Dataop.SELMD, writable=True, filedtype="array", outobj=True
+            ),
+            "选择": Pred(
+                act=Dataop.SELMS, writable=True, filedtype="cache", outobj=True
+            ),
             "管理": Pred(act=Dataop.MANAGE, writable=True, filedtype="json"),
             "审核": Pred(act=Dataop.APPROVE, writable=True, filedtype="bool"),
         }
@@ -54,7 +67,19 @@ class Dataop(Enum):
 @define(slots=True, frozen=False, eq=False)
 class Dtd(Entity):
     type: str = field(default="Dtd")
-    fields: "dict[str:any]" = field(factory=dict)
+    fields: "dict[str:any]" = field(factory=dict, metadata={"childtype": dict})
+    # 只能手动更新数据．
+    const: bool = field(default=False)
+    datas: "list[dict]" = field(factory=list, metadata={"childtype": dict})
+
+    # 内部支持的表格名称列表:
+    @staticmethod
+    def buildins(obj: str):
+        return ["用户"]
+
+    @staticmethod
+    def isbuildin(obj: str):
+        return obj in Dtd.buildins()
 
 
 @define(slots=True, frozen=False, eq=False)
@@ -160,7 +185,9 @@ class Workflow(Entity):
     dtd: str = field(default="")
     # 本流程是否是一个知识库条目．知识库条目只有被依赖时才引入系统．
     kc: bool = field(default=False)
-    behaves: "list[str, Behave]" = field(factory=list, metadata={"childtype": Behave})
+    behaves: "list[str, Behave]" = field(
+        factory=list, metadata={"childtype": Behave}
+    )
     dep: "list[str]" = field(factory=list)
 
     # 寻找本流程中指定index之前是否有对应主语
@@ -187,7 +214,10 @@ class Workflow(Entity):
             else:
                 objequal = bh.obj == name
             if objequal:
-                return {"table": self.dtd or self.name, "field": bh.fieldname(index)}
+                return {
+                    "table": self.dtd or self.name,
+                    "field": bh.fieldname(index),
+                }
         return None
 
 
@@ -209,10 +239,16 @@ class Relation(Entity):
 @define(slots=True, frozen=False, eq=False)
 class Humod(Entity):
     type: str = field(default="Humod")
-    wfs: "dict[str, Workflow]" = field(factory=dict, metadata={"childtype": Workflow})
+    wfs: "dict[str, Workflow]" = field(
+        factory=dict, metadata={"childtype": Workflow}
+    )
     dtds: "dict[str, Dtd]" = field(factory=dict, metadata={"childtype": Dtd})
-    rls: "dict[str,Relation]" = field(factory=dict, metadata={"childtype": Relation})
-    roles: "dict[str, Role]" = field(factory=dict, metadata={"childtype": Role})
+    rls: "dict[str,Relation]" = field(
+        factory=dict, metadata={"childtype": Relation}
+    )
+    roles: "dict[str, Role]" = field(
+        factory=dict, metadata={"childtype": Role}
+    )
 
     # def __attrs_post_init__(self):
     #     from store import Storew
@@ -223,13 +259,17 @@ class Humod(Entity):
     #     ctx.add_entity("dtds", self.dtds)
     def dtdfield(self, tablename, fieldname, typename):
         if not tablename in self.dtds:
-            self.dtds[tablename] = Dtd(name=tablename, fields={fieldname: typename})
+            self.dtds[tablename] = Dtd(
+                name=tablename, fields={fieldname: typename}
+            )
         else:
             self.dtds[tablename].fields[fieldname] = typename
 
     def enumfield(self, tablename, fieldname, enumval):
         if not tablename in self.dtds:
-            self.dtds[tablename] = Dtd(name=tablename, fields={fieldname: [enumval]})
+            self.dtds[tablename] = Dtd(
+                name=tablename, fields={fieldname: [enumval]}
+            )
         else:
             if fieldname in self.dtds[tablename].fields:
                 if enumval not in self.dtds[tablename].fields[fieldname]:

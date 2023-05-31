@@ -86,10 +86,26 @@ def bot() -> None:
 @bot.command(help=_("generate code from workflow"))
 @click.option("--verbose", "-v", is_flag=True, help="Enables verbose mode.")
 @click.option(
+    "--warn-as-error",
+    "-w",
+    multiple=True,
+    help=_(
+        "Make comma-separated warnings into errors.'all' to make all warning to error,'auto' to make all auto-complete warnings into errors(NOT IMPLEMENTED)"
+    ),
+)
+@click.option(
+    "--strict",
+    "-s",
+    is_flag=True,
+    help=_("Same as '-w auto',make all auto-complete warnings into errors"),
+)
+@click.option(
     "--dump-model",
     "-m",
     multiple=True,
-    help=_("Output the model with the specified name."),
+    help=_(
+        "Output the model with the specified name.'all' to dump every model in pipeline"
+    ),
 )
 @click.option(
     "--tolerant",
@@ -106,15 +122,21 @@ def bot() -> None:
     ),
 )
 @click.argument("src", type=str, metavar="SRC(filepath or URL)")
-def build(verbose, dump_model, tolerant, output_dir, src) -> None:  # type: ignore[no-untyped-def]
+def build(verbose, warn_as_error, strict, dump_model, tolerant, output_dir, src) -> None:  # type: ignore[no-untyped-def]
     dump_models = list()
     for m in dump_model:
         if is_valid_string(m):
             dump_models.extend(m.split(","))
     # 　将参数构建为一个对象．
+    werrors = list()
+    for w in warn_as_error:
+        if is_valid_string(w):
+            werrors.extend(w.split(","))
     opts = {
         "verbose": verbose,
         "tolerant": tolerant,
+        "strict": strict,
+        "werrors": werrors,
         "output_dir": output_dir,
         "dump_models": dump_models,
         "src": src,
