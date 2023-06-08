@@ -74,6 +74,11 @@ $rls.物流信息 = {
     "发货单号"
   ]
 }
+
+$rls.默认角色提权 = {
+  dtrm: 'rolereq'
+}
+
 // this is a comment
 class 商品 { }
 

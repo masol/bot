@@ -19,6 +19,9 @@ class Reldtrm(Enum):
     HTTP = "http"  # http第三方调用
     FUNCTION = "func"  # 函数调用
     MATH = "math"  # 数学关系
+    ROLEREQ = "rolereq"  # 角色请求 # 例如商家角色申请,内建支持几个常用流程
+    ROLEGRANT = "rolegrant"  # 角色授权 # 例如给予商家角色,内建支持几个常用流程
+    # 类似Dataop，这里只是basic，可以基于流程抽象并组合
 
 
 # 基础数据操作
@@ -45,16 +48,10 @@ class Dataop(Enum):
             # 将给予权限的操作映射为提交操作．(通过后缀"XX角色"及"XX权限"判断．)
             "提交": Pred(act=Dataop.PUT, writable=True, filedtype="json"),
             "给予": Pred(act=Dataop.PUT, writable=True, filedtype="json"),
-            # "给予": Pred(act=Dataop.ACLGRANT, writable=True, filedtype="acl"),            
-            "单选": Pred(
-                act=Dataop.SELONE, writable=True, filedtype="id", outobj=True
-            ),
-            "多选": Pred(
-                act=Dataop.SELMD, writable=True, filedtype="array", outobj=True
-            ),
-            "选择": Pred(
-                act=Dataop.SELMS, writable=True, filedtype="cache", outobj=True
-            ),
+            # "给予": Pred(act=Dataop.ACLGRANT, writable=True, filedtype="acl"),
+            "单选": Pred(act=Dataop.SELONE, writable=True, filedtype="id", outobj=True),
+            "多选": Pred(act=Dataop.SELMD, writable=True, filedtype="array", outobj=True),
+            "选择": Pred(act=Dataop.SELMS, writable=True, filedtype="cache", outobj=True),
             "管理": Pred(act=Dataop.MANAGE, writable=True, filedtype="json"),
             "审核": Pred(act=Dataop.APPROVE, writable=True, filedtype="bool"),
         }
@@ -185,9 +182,7 @@ class Workflow(Entity):
     dtd: str = field(default="")
     # 本流程是否是一个知识库条目．知识库条目只有被依赖时才引入系统．
     kc: bool = field(default=False)
-    behaves: "list[str, Behave]" = field(
-        factory=list, metadata={"childtype": Behave}
-    )
+    behaves: "list[str, Behave]" = field(factory=list, metadata={"childtype": Behave})
     dep: "list[str]" = field(factory=list)
 
     # 寻找本流程中指定index之前是否有对应主语
@@ -239,16 +234,10 @@ class Relation(Entity):
 @define(slots=True, frozen=False, eq=False)
 class Humod(Entity):
     type: str = field(default="Humod")
-    wfs: "dict[str, Workflow]" = field(
-        factory=dict, metadata={"childtype": Workflow}
-    )
+    wfs: "dict[str, Workflow]" = field(factory=dict, metadata={"childtype": Workflow})
     dtds: "dict[str, Dtd]" = field(factory=dict, metadata={"childtype": Dtd})
-    rls: "dict[str,Relation]" = field(
-        factory=dict, metadata={"childtype": Relation}
-    )
-    roles: "dict[str, Role]" = field(
-        factory=dict, metadata={"childtype": Role}
-    )
+    rls: "dict[str,Relation]" = field(factory=dict, metadata={"childtype": Relation})
+    roles: "dict[str, Role]" = field(factory=dict, metadata={"childtype": Role})
 
     # def __attrs_post_init__(self):
     #     from store import Storew
@@ -259,17 +248,13 @@ class Humod(Entity):
     #     ctx.add_entity("dtds", self.dtds)
     def dtdfield(self, tablename, fieldname, typename):
         if not tablename in self.dtds:
-            self.dtds[tablename] = Dtd(
-                name=tablename, fields={fieldname: typename}
-            )
+            self.dtds[tablename] = Dtd(name=tablename, fields={fieldname: typename})
         else:
             self.dtds[tablename].fields[fieldname] = typename
 
     def enumfield(self, tablename, fieldname, enumval):
         if not tablename in self.dtds:
-            self.dtds[tablename] = Dtd(
-                name=tablename, fields={fieldname: [enumval]}
-            )
+            self.dtds[tablename] = Dtd(name=tablename, fields={fieldname: [enumval]})
         else:
             if fieldname in self.dtds[tablename].fields:
                 if enumval not in self.dtds[tablename].fields[fieldname]:

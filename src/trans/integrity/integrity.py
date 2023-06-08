@@ -51,6 +51,11 @@ class Integrity(Model):
                     _("behave objection '%s' is not a valid string") % (bh.obj)
                 )
             name = bh.obj
+            # pattern处理，以确定宾语索引的表格
+            if name.endswith("角色"):
+                pass
+            elif name.endswith("权限"):
+                pass
             # 此宾语引用外部流程表.
             if bh.pred.outobj:
                 objinfo = self.imodel.findobj(name)
