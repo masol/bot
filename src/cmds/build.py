@@ -13,7 +13,7 @@ def build(opts: dict) -> None:  # type: ignore[type-arg]
     store: Store = Store.instance()
     store.init(opts)
     try:
-        pipeline = createPipe(["humod", "integrity", "jobduty", "uipage"])
+        pipeline = createPipe(["humod", "integrity", "jobduty", "uipage", "database"])
         pipeline.fit_transform(store)
 
     except LoggerExcept as e:

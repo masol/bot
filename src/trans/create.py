@@ -7,6 +7,7 @@ from .humod.humod import Humod
 from .integrity.integrity import Integrity
 from .jobduty.jobduty import JobDuty
 from .uipage.uipage import UIpage
+from .database.database import Database
 
 
 def createModel(name: str):
@@ -18,6 +19,8 @@ def createModel(name: str):
         return UIpage()
     elif name == 'integrity':
         return Integrity()
+    elif name == 'database':
+        return Database()
     else:
         logger.error(_('Unsupported model "%s" were requested') % name)
 
