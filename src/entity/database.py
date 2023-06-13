@@ -7,5 +7,8 @@ from jinja2 import Template
 @define(slots=True, frozen=False, eq=False)
 class Database(Entity):
     type: str = field(default="Database")
-    template: Template = ""
-    context: "dict[str, list]" = ""
+    template: str = ""
+    table: list = []
+    attributeName: list = []
+    attributeType: list = []
+    context: dict = {"tables": []}

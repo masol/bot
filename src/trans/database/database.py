@@ -9,49 +9,94 @@ class Database(Model):
         self.imname = "inthumod"
         self.omname = "database"
         self.ometype = DatabaseEntity
+        self.order = 0
         pass
 
     def digitToLetter(self, digit):
         alphabet = "abcdefghijklmnopqrstuvwxyz"
         return alphabet[digit]
     
-    def extractContext(self):
-        self.omodel.context = {"tables": []}
-
-        order = 0
-
+    def designTable(self):
         for dtd in self.imodel.dtds.values():
-            table_detail = {"name": "", "correspondence": "", "attributes": []}
+            table = {"name": "", "correspondence": ""}
 
-            table_detail["name"] = dtd.name
-            table_detail["correspondence"] = self.digitToLetter(order)
-            order += 1
+            table["name"] = dtd.name
+            table["correspondence"] = self.digitToLetter(self.order)
+            self.order += 1
 
+            self.omodel.table.append(table)
+    
+    def designAttributeName(self):
+        for dtd in self.imodel.dtds.values():
+            attributes = {"table": dtd.name, "attributes": []}
             for field in dtd.fields.items():
                 if isinstance(field[1], dict):
                     for item in field[1].keys():
-                        table_detail["attributes"].append({
+                        attributes["attributes"].append({
                             "name": item,
-                            "type": "str",
-                            "correspondence": self.digitToLetter(order)})
-                        order += 1
-                
-                elif field[1] == "bool":
-                    table_detail["attributes"].append({
-                        "name": field[0],
-                        "type": "bool",
-                        "correspondence": self.digitToLetter(order)})
-                    order += 1
+                            "correspondence": self.digitToLetter(self.order),
+                        })
+                        self.order += 1
                 
                 else:
-                    table_detail["attributes"].append({
+                    attributes["attributes"].append({
                         "name": field[0],
-                        "type": "str",
-                        "correspondence": self.digitToLetter(order)})
-                    order += 1
+                        "correspondence": self.digitToLetter(self.order),
+                    })
+                    self.order += 1
             
-            self.omodel.context["tables"].append(table_detail)
+            self.omodel.attributeName.append(attributes)
 
+    def designAttributeType(self):
+        for dtd in self.imodel.dtds.values():
+            attributes = {"table": dtd.name, "attributes": []}
+            for field in dtd.fields.items():
+                if isinstance(field[1], dict):
+                    for item in field[1].items():
+                        if item[1] == "bool":
+                            attributes["attributes"].append({
+                                "name": item[0],
+                                "type": "boolean",
+                            })
+                        else:
+                            attributes["attributes"].append({
+                                "name": item[0],
+                                "type": "string",
+                            })
+                
+                else:
+                    if field[1] == "bool":
+                        attributes["attributes"].append({
+                            "name": field[0],
+                            "type": "boolean",
+                        })
+                    else:
+                        attributes["attributes"].append({
+                            "name": field[0],
+                            "type": "string",
+                        })
+            
+            self.omodel.attributeType.append(attributes)
+    
+    def merge(self):
+        for i in range(len(self.omodel.table)):
+            table = {"name": "", "correspondence": "", "attribute": []}
+
+            table["name"] = self.omodel.table[i]["name"]
+            table["correspondence"] = self.omodel.table[i]["correspondence"]
+
+            for j in range(len(self.omodel.attributeName[i]["attributes"])):
+                attribute = {"name": "", "correspondence": "", "type": ""}
+                
+                attribute["name"] = self.omodel.attributeName[i]["attributes"][j]["name"]
+                attribute["correspondence"] = self.omodel.attributeName[i]["attributes"][j]["correspondence"]
+                
+                attribute["type"] = self.omodel.attributeType[i]["attributes"][j]["type"]
+
+                table["attribute"].append(attribute)
+
+            self.omodel.context["tables"].append(table)
+            
     def formTemplate(self):
         self.omodel.template = Template('''
 module.exports = function (fastify, opts) {
@@ -63,13 +108,9 @@ module.exports = function (fastify, opts) {
             .createTable('{{ table.correspondence }}', function (table) {
                 // 主键
                 table.uuid('id', { primaryKey: true }).defaultTo(knex.raw('gen_random_uuid()'))
-                {% for attribute in table.attributes %}
+                {% for attribute in table.attribute %}
                 // {{ attribute.name }}
-                {% if attribute.type == "str" %}
-                table.string('{{ attribute.correspondence }}', 32).nullable()
-                {% elif attribute.type == "bool" %}
-                table.boolean('{{ attribute.correspondence }}').defaultTo(false)
-                {% endif %}
+                table.{{ attribute.type }}('{{ attribute.correspondence }}')
                 {% endfor %}
             })
             {% endfor %}
@@ -78,7 +119,10 @@ module.exports = function (fastify, opts) {
 }''')
 
     def dotransform(self, store):
-        self.extractContext()
+        self.designTable()
+        self.designAttributeName()
+        self.designAttributeType()
+        self.merge()
         self.formTemplate()
-        self.omodel.template.render(self.omodel.context)
+        self.omodel.template = self.omodel.template.render(self.omodel.context)
         return store
