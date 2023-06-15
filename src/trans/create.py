@@ -8,7 +8,7 @@ from .integrity.integrity import Integrity
 from .jobduty.jobduty import JobDuty
 from .uipage.uipage import UIpage
 from .database.database import Database
-
+from .gql.gql import Gql
 
 def createModel(name: str):
     if name == 'humod':
@@ -21,6 +21,8 @@ def createModel(name: str):
         return Integrity()
     elif name == 'database':
         return Database()
+    elif name == 'gql':
+        return Gql()
     else:
         logger.error(_('Unsupported model "%s" were requested') % name)
 
