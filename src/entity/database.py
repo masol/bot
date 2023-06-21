@@ -8,7 +8,25 @@ from jinja2 import Template
 class Database(Entity):
     type: str = field(default="Database")
     template: str = ""
-    table: list = []
-    attributeName: list = []
-    attributeType: list = []
-    context: dict = {"tables": []}
+    tables: list = []
+
+@define(slots=True, frozen=False, eq=False)
+class Table(Entity):
+    type: str = field(default="Table")
+    name: str = ""
+    correspondence: str = ""
+    strings: list = []
+    booleans: list = []
+
+@define(slots=True, frozen=False, eq=False)
+class String(Entity):
+    type: str = field(default="String")
+    name: str = ""
+    correspondence: str = ""
+    length: int = 0
+
+@define(slots=True, frozen=False, eq=False)
+class Boolean(Entity):
+    type: str = field(default="Boolean")
+    name: str = ""
+    correspondence: str = ""
