@@ -5,7 +5,7 @@ from entity.entity import Entity
 
 @define(slots=True, frozen=False, eq=False)
 class Duty(Entity):
-    type: str = field(default="Duty")
+    type: int = field(default="Duty")
 
 @define(slots=True, frozen=False, eq=False)
 class Role(Entity):
