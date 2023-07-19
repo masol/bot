@@ -7,9 +7,7 @@ $wfs.用户登录 = {
     {
       subj: "用户",
       pred: "选择",
-      obj:{
-        "顾客"
-      },
+      obj: "顾客",
       next: -1,
       cncnt: [
         {
@@ -34,14 +32,14 @@ $wfs.用户登录 = {
     },
     {
       subj: "顾客",
-      pred: "提交",
-      obj:"个人信息",
+      pred: "提交" ,
+      obj: "个人信息",
       datas:
       {
-        "用户名":"String",
-        "密码1":"String",
-        "密码2":"String",
-        "地址":"String",
+        "用户名": "String",
+        "密码1": "String",
+        "密码2": "String",
+        "地址": "String",
       },
     },
     {
@@ -66,13 +64,13 @@ $wfs.用户登录 = {
     {
       subj: "员工",
       pred: "提交",
-      obj:"个人信息",
+      obj: "个人信息",
       datas:
       {
-        "姓氏":"String",
-        "名字":"String",
-        "电话号码":"String",
-        "电子邮箱":"String",
+        "姓氏": "String",
+        "名字": "String",
+        "电话号码": "String",
+        "电子邮箱": "String",
       },
     },
     {

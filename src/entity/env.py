@@ -23,6 +23,7 @@ class Env(entity.Entity):
     logutc: bool = field(default=True)
     tolerant: bool = field(default=False)
     output_dir: str = field(default="target")
+    kc_dir: str = field(default="")
 
     # 支持warn_as_error的warning.
     def warn(self, cate: str, msg: str, warn_ex_msg: str) -> None:

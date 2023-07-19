@@ -5,7 +5,9 @@ import os
 import rich
 
 import cmds.build as buildImpl
+import cmds.gen as genImpl
 from util.str import is_valid_string
+from functools import reduce
 
 # from cmds.build import build as buildImpl  # type: ignore[attr-defined]
 
@@ -17,9 +19,7 @@ click_completion.init()
 # gettext.bindtextdomain('bot', \
 # os.path.join(os.path.dirname(__file__), 'locales'))
 # gettext.textdomain('bot')
-gettext.install(
-    "bot", localedir=os.path.join(os.path.dirname(__file__), "locales")
-)
+gettext.install("bot", localedir=os.path.join(os.path.dirname(__file__), "locales"))
 _ = gettext.gettext
 
 
@@ -30,9 +30,7 @@ class CustomHelp(click.Group):
         print(ctx)
         return usage.replace("Usage:", _("Usage:"))
 
-    def format_help(
-        self, ctx: click.Context, formatter: click.HelpFormatter
-    ) -> None:
+    def format_help(self, ctx: click.Context, formatter: click.HelpFormatter) -> None:
         # Print the usage information
         super().format_help(ctx, formatter)
         self.format_commands(ctx, formatter)
@@ -83,46 +81,58 @@ def bot() -> None:
     # click.echo(os.path.dirname(__file__))
 
 
-@bot.command(help=_("generate code from workflow"))
-@click.option("--verbose", "-v", is_flag=True, help="Enables verbose mode.")
-@click.option(
-    "--warn-as-error",
-    "-w",
-    multiple=True,
-    help=_(
-        "Make comma-separated warnings into errors.'all' to make all warning to error,'auto' to make all auto-complete warnings into errors(NOT IMPLEMENTED)"
-    ),
-)
-@click.option(
-    "--strict",
-    "-s",
-    is_flag=True,
-    help=_("Same as '-w auto',make all auto-complete warnings into errors"),
-)
-@click.option(
-    "--dump-model",
-    "-m",
-    multiple=True,
-    help=_(
-        "Output the model with the specified name.'all' to dump every model in pipeline"
-    ),
-)
-@click.option(
-    "--tolerant",
-    "-t",
-    is_flag=True,
-    help=_("Tolerate a few cases of syntax errors"),
-)
-@click.option(
-    "-o",
-    "--output-dir",
-    type=click.Path(dir_okay=False),
-    help=_(
-        "Directory where output files should be written.Default is target."
-    ),
-)
-@click.argument("src", type=str, metavar="SRC(filepath or URL)")
-def build(verbose, warn_as_error, strict, dump_model, tolerant, output_dir, src) -> None:  # type: ignore[no-untyped-def]
+def common_options(f):
+    options = [
+        click.option("--verbose", "-v", is_flag=True, help="Enables verbose mode."),
+        click.option(
+            "--warn-as-error",
+            "-w",
+            multiple=True,
+            help=_(
+                "Make comma-separated warnings into errors.'all' to make all warning to error,'auto' to make all auto-complete warnings into errors(NOT IMPLEMENTED)"
+            ),
+        ),
+        click.option(
+            "--strict",
+            "-s",
+            is_flag=True,
+            help=_("Same as '-w auto',make all auto-complete warnings into errors"),
+        ),
+        click.option(
+            "--dump-model",
+            "-m",
+            multiple=True,
+            help=_(
+                "Output the model with the specified name.'all' to dump every model in pipeline"
+            ),
+        ),
+        click.option(
+            "--kc-dir",
+            multiple=False,
+            help=_(
+                "Specify the directory of the knowledge base, the default is kc in the user directory"
+            ),
+        ),
+        click.option(
+            "--tolerant",
+            "-t",
+            is_flag=True,
+            help=_("Tolerate a few cases of syntax errors"),
+        ),
+        click.option(
+            "-o",
+            "--output-dir",
+            type=click.Path(dir_okay=False),
+            help=_("Directory where output files should be written.Default is target."),
+        ),
+        click.argument("src", type=str, metavar="SRC(filepath or URL)"),
+    ]
+    return reduce(lambda x, opt: opt(x), options, f)
+
+
+def get_opts(
+    verbose, warn_as_error, strict, dump_model, kc_dir, tolerant, output_dir, src
+) -> dict:
     dump_models = list()
     for m in dump_model:
         if is_valid_string(m):
@@ -139,13 +149,33 @@ def build(verbose, warn_as_error, strict, dump_model, tolerant, output_dir, src)
         "werrors": werrors,
         "output_dir": output_dir,
         "dump_models": dump_models,
+        "kc_dir": kc_dir,
         "src": src,
     }
+    return opts
+
+
+@bot.command(help=_("generate code from workflow"))
+@common_options
+def build(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+    opts = get_opts(*args, **kwargs)
     # 　调用build模块的build函数
     buildImpl.build(opts)
 
 
 build.__doc__ = _("generate code from workflow")
+
+
+@bot.command(help=_("generate code from workflow use kc."))
+@common_options
+def gen(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
+    opts = get_opts(*args, **kwargs)
+    # 　调用build模块的build函数
+    genImpl.build(opts)
+
+
+gen.__doc__ = _("generate code from workflow use kc")
+
 
 
 @bot.command(help="analysis workflow")
@@ -160,10 +190,7 @@ analysis.__doc__ = _("""analysis workflow""")
 @click.option("--verbose", "-v", is_flag=True, help=_("Enables verbose mode."))
 def version(verbose) -> None:
     #    click.echo(_("BOT version: %s") % BOT_VERSION)
-    rich.print(
-        ("[bold]%s[/bold]: [green]%s[/green]")
-        % (_("BOT version"), BOT_VERSION)
-    )
+    rich.print(("[bold]%s[/bold]: [green]%s[/green]") % (_("BOT version"), BOT_VERSION))
     if verbose:
         from simple_spinner.spinner import Spinner
 
