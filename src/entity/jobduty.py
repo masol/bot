@@ -3,28 +3,40 @@ from attrs import define, field
 from entity.entity import Entity
 
 
+
 @define(slots=True, frozen=False, eq=False)
 class Duty(Entity):
-    type: int = field(default="Duty")
+    type: str = field(default="Duty")
+    wfs: str= field(default="")
+    bhs: int= field(default=-1)
+
+    
 
 @define(slots=True, frozen=False, eq=False)
 class Role(Entity):
     type: str = field(default="Role")
-    duties:"dict[str, Duty]" = field(factory=dict, metadata={"childtype": Duty})
-
-
-@define(slots=True, frozen=False, eq=False)
-class Workflow(Entity):
-    type: str = field(default="Workflow")
-    roles: "dict[str, Role]" = field(factory=dict, metadata={"childtype": Role})
+    duties:"list[Duty]" = field(factory=list, metadata={"childtype": Duty})
     
+    def append(self,wf,idx):
+        duty=Duty(wfs=wf,bhs=idx)
+        self.duties.append(duty)
+
 
 
 @define(slots=True, frozen=False, eq=False)
 class JobDuty(Entity):
     type: str = field(default="JobDuty")
-    wfs: "dict[str, Workflow]" = field(factory=dict, metadata={"childtype": Workflow})
-    
+    roles: "dict[str, Role]" = field(factory=dict, metadata={"childtype": Role})
+
+    def ensure(self,rolename):
+        if rolename in self.roles:
+          return self.roles[rolename]
+ 
+        role=Role()
+        self.roles[rolename]=role
+        return role 
+
+
 
 
 # @define(slots=True, frozen=False, eq=False)
