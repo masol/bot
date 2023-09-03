@@ -5,7 +5,8 @@ from util.str import is_valid_string
 
 from . import entity
 from appdirs import user_data_dir
-from os import path
+from os import path, getcwd, listdir, remove, makedirs
+import shutil
 
 
 @define(slots=True)
@@ -41,6 +42,48 @@ class Env(entity.Entity):
     def kcd_path(self, *args):
         return path.join(self.kc_dir, *args)
 
-    def init(self) -> str:
+    def full_outdir(self):
+        if path.isabs(self.output_dir):
+            return self.output_dir
+        return path.join(getcwd(), self.output_dir)
+
+    # 返回初始化是否成功．
+    def init(self) -> bool:
         if not is_valid_string(self.kc_dir):
             self.kc_dir = user_data_dir(appname="bot", appauthor=False)
+        if not is_valid_string(self.output_dir):
+            self.output_dir = "target"
+        target = self.full_outdir()
+        if path.exists(target):
+            if path.isdir(target):
+                if self.force:
+                    if self.verbose:
+                        logger.info(f"输出目录'{target}'不为空，删除之.")
+                    shutil.rmtree(target)
+                elif not Env.is_directory_empty(target):
+                    logger.error(f"输出目录'{target}'已经存在并且不为空．")
+                    return False
+            else:
+                if self.force:
+                    if self.verbose:
+                        logger.info(f"输出目录'{target}'是一个文件，删除之.")
+                    remove(target)
+                else:
+                    logger.error(f"指定的输出目录'{target}'已经存在同名文件．")
+                    return False
+        if not path.exists(target):
+            Env.mkdirs(target)
+        return True
+
+    @staticmethod
+    def mkdirs(path):
+        try:
+            makedirs(path)
+        except FileExistsError:
+            # directory already exists
+            pass
+
+    @staticmethod
+    def is_directory_empty(dir_path):
+        return not bool(listdir(dir_path))
+

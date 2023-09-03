@@ -112,11 +112,11 @@ class Api(Entity):
     def alloc_bind_var(self):
         next = len(self.q_bind) + 1
         return f"_{convert_to_base36(next)}"
-    
+
     def mode(self):
         if is_valid_string(self.name):
             return self.name[:-1]
-        return 'q'
+        return "q"
 
 
 @define(slots=True, frozen=False, eq=False)

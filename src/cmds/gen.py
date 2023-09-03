@@ -11,7 +11,8 @@ from util.log import LoggerExcept
 
 def build(opts: dict) -> None:  # type: ignore[type-arg]
     store: Store = Store.instance()
-    store.init(opts)
+    if not store.init(opts):
+        return
     try:
         # 确定框架及模块．(选择一组模板文件集合) ＃trans.
         # 对每个模板，提取其变量符号．

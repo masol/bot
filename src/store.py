@@ -13,8 +13,11 @@ class Store:
     models: "dict[str:Entity]" = field(default={})
     kc: KC = field(factory=KC)
 
-    def init(self, opts: dict) -> None:
+    # 返回是否初始化成功．
+    def init(self, opts: dict) -> bool:
         self.env = Env(**opts)
-        self.env.init()
+        if not self.env.init():
+            return False
         self.kc.scan(self.env)
+        return True
         # print(self.env)
