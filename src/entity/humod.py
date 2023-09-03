@@ -11,7 +11,7 @@ class Subjdtrm(Enum):
     WF = auto()  # 工作流程中前置角色相同
     PREOBJ = auto()  # 通过前置行为的宾语关联．
     ALLOC = auto()  # 随机分配一个对应角色．
-    MODIF = auto()
+    MODIF = auto() # 筛选器，尚未实现．
 
 
 class Reldtrm(Enum):
@@ -25,6 +25,7 @@ class Reldtrm(Enum):
 
 
 # 基础数据操作
+# print("%x" % md5hash("AUDITS"))
 class Dataop(Enum):
     invalid = 0
     GET = 0x7528035A93EE69CEDB1DBDDB2F0BFCC8  # 获取信息
@@ -34,8 +35,9 @@ class Dataop(Enum):
     SELMS = 0x902FC3E1087827A338E5C5F403E298F3  # 从类集中选多个(可缓存模式-例如购物车)，自动将流程拆分为多个并行执行．
     MANAGE = 0x92814A387D2FE972E8AA877BC152980C  # 管理信息，要增删改查
     APPROVE = 0xED36B4A24E02A8786F52126DE566CF69  # 审批信息，显示同意，拒绝状态．
+    # AUDITS = 0x2e4ce8fca5806f2d66b1241ef0cd74c5  # 审计信息，与审批不同的是，默认同意．
     ACLREQUEST = 0x3AFE20F637B3B9304DADF9AEDA009BA3  # 申请权限．例如申请商家角色．
-    # ACLGRANT = 0x35E841A48B174AF7917ABF15E6345A09  # 批准权限，例如给予商家角色．
+    # AGGREGATE = 0x361d91ce0f028b6708f607b76b12a318  # 查看汇总信息，宾语为流程，行为名．
 
     # pred是否映射一个基础操作．
     @staticmethod
@@ -53,7 +55,11 @@ class Dataop(Enum):
             "多选": Pred(act=Dataop.SELMD, writable=True, filedtype="array", outobj=True),
             "选择": Pred(act=Dataop.SELMS, writable=True, filedtype="cache", outobj=True),
             "管理": Pred(act=Dataop.MANAGE, writable=True, filedtype="json"),
-            "审核": Pred(act=Dataop.APPROVE, writable=True, filedtype="bool"),
+            "审核": Pred(
+                act=Dataop.APPROVE, writable=True, cloning=True, filedtype="bool"
+            ),
+            # 汇总流程，行为的信息．
+            # "汇总": Pred(act=Dataop.AGGREGATE),
         }
         newpred = switcher.get(pred, Dataop.invalid.value)
         if isinstance(newpred, Pred):
@@ -113,6 +119,8 @@ class Pred(Entity):
     outobj: bool = field(default=False)
     # 此行为在当前工作流表中维护字段的类型．
     filedtype: any = field(default=None)
+    # 此谓语是否需要将宾语对象复制出来．
+    cloning: bool = field(default=False)
 
 
 @define(slots=True, frozen=False, eq=False)
@@ -182,6 +190,8 @@ class Workflow(Entity):
     dtd: str = field(default="")
     # 本流程是否是一个知识库条目．知识库条目只有被依赖时才引入系统．
     kc: bool = field(default=False)
+    # 是否将本页面设置为首页(默认页面).当前实现，只检查此标志，如无首页，首页为登录页．
+    core: bool = field(default=False)
     behaves: "list[str, Behave]" = field(factory=list, metadata={"childtype": Behave})
     dep: "list[str]" = field(factory=list)
 
@@ -197,8 +207,22 @@ class Workflow(Entity):
                 return True
         return False
 
-    # 本流程表是否包含了指定名词(obj),如果是，返回表名，字段等信息．
+    # 　寻找本流程内，指定index之前的最后一个相同宾语．
+    def findprevobj(self, name: str, idx: int):
+        retbh = False
+        for index, bh in enumerate(self.behaves):
+            if index >= idx:
+                break
+            objname = bh.obj
+            if isinstance(bh.obj, Obj):
+                objname = bh.obj.name
+            if objname == name:
+                retbh = bh
+        return retbh
+
+    # 本流程表是否包含了指定名词(obj),如果是，返回表名，字段等信息．(返回最后一个)
     def findobj(self, name: str):
+        ret = None
         for index, bh in enumerate(self.behaves):
             # 宾语引用了外部表．
             if bh.pred.outobj:
@@ -209,11 +233,11 @@ class Workflow(Entity):
             else:
                 objequal = bh.obj == name
             if objequal:
-                return {
+                ret = {
                     "table": self.dtd or self.name,
                     "field": bh.fieldname(index),
                 }
-        return None
+        return ret
 
 
 @define(slots=True, frozen=False, eq=False)
@@ -246,6 +270,13 @@ class Humod(Entity):
     #     ctx = inst.getctx(HUMOD_CTX_NAME)
     #     ctx.add_entity("wfs", self.wfs)
     #     ctx.add_entity("dtds", self.dtds)
+    def getdtdfield(self, tablename: str, fieldname: str):
+        if tablename in self.dtds:
+            fields = self.dtds[tablename].fields
+            if fieldname in fields:
+                return fields[fieldname]
+        return None
+
     def dtdfield(self, tablename, fieldname, typename):
         if not tablename in self.dtds:
             self.dtds[tablename] = Dtd(name=tablename, fields={fieldname: typename})

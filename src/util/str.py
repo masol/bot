@@ -28,3 +28,12 @@ def md5hash(txt: str) -> int:
 def is_valid_string(s):
     """Check if a variable is a valid string and has length greater than zero."""
     return isinstance(s, str) and len(s) > 0
+
+def convert_to_base36(number):
+    chars = "0123456789abcdefghijklmnopqrstuvwxyz"
+
+    if number < 36:
+        return chars[number]
+    else:
+        number, remainder = divmod(number, 36)
+        return convert_to_base36(number) + chars[remainder]

@@ -18,7 +18,7 @@ def build(opts: dict) -> None:  # type: ignore[type-arg]
         # 扫描每个变量符号，构建其从输出到达符号的DAG(调用栈)．
         # pipeline = createPipe(["humod", "integrity"])
         # 使用调用栈，构建pipeline.执行之得到最终源码．
-        pipeline = createPipe(["humod", "integrity", "jobduty", "uipage","database", "gql"])
+        pipeline = createPipe(["humod", "integrity", "jobduty", "arch"])
         pipeline.fit_transform(store)
 
     except LoggerExcept as e:

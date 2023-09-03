@@ -125,13 +125,21 @@ def common_options(f):
             type=click.Path(dir_okay=False),
             help=_("Directory where output files should be written.Default is target."),
         ),
+        click.option(
+            "-f",
+            "--force",
+            is_flag=True,
+            help=_(
+                "When set, the contents of the output directory are forced to be overwritten without warning."
+            ),
+        ),
         click.argument("src", type=str, metavar="SRC(filepath or URL)"),
     ]
     return reduce(lambda x, opt: opt(x), options, f)
 
 
 def get_opts(
-    verbose, warn_as_error, strict, dump_model, kc_dir, tolerant, output_dir, src
+    verbose, warn_as_error, strict, dump_model, kc_dir, tolerant, output_dir, force, src
 ) -> dict:
     dump_models = list()
     for m in dump_model:
@@ -150,6 +158,7 @@ def get_opts(
         "output_dir": output_dir,
         "dump_models": dump_models,
         "kc_dir": kc_dir,
+        "force": force,
         "src": src,
     }
     return opts
@@ -175,7 +184,6 @@ def gen(*args, **kwargs) -> None:  # type: ignore[no-untyped-def]
 
 
 gen.__doc__ = _("generate code from workflow use kc")
-
 
 
 @bot.command(help="analysis workflow")

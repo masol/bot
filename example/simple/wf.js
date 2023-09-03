@@ -1,4 +1,5 @@
 $wfs.购物 = {
+  core: true,
   behaves: [
     {
       subj: "买家",

@@ -38,7 +38,7 @@ class Integrity(Model):
             )
             return store
 
-        print("%x" % md5hash("ACLGRANT"))
+        print("%x" % md5hash("AUDITS"))
         # self.humodict = HumodDict()
         # self.humodict.load(imodel)
 
@@ -88,25 +88,46 @@ class Integrity(Model):
                             )
                             % (name, input, rel.name)
                         )
-                newobj = Obj(
-                    name=name, table=objinfo["table"], field=objinfo["field"]
-                )
+                newobj = Obj(name=name, table=objinfo["table"], field=objinfo["field"])
                 bh.obj = newobj
+            elif bh.obj:
+                # 此宾语引用本流程前的宾语，例如审核.
+                foundbh = wf.findprevobj(bh.obj, ctx["index"])
+                if isinstance(foundbh, Behave) and isinstance(foundbh.obj,Obj) and bh.pred.cloning:
+                    prevobj = foundbh.obj
+                    fileds = self.omodel.getdtdfield(prevobj.table, prevobj.field)
+                    if fileds:
+                        fileds = copy.deepcopy(fileds)
+                        fileds['$审核$'] = 'bool'
+                        fileds['$撤销请求$'] = 'bool'
+                        fileds['$审核时间$'] = 'time'
+                        tablename= (wf.dtd or wf.name)
+                        fieldname = bh.fieldname(ctx["index"])
+                        self.omodel.dtdfield(
+                            tablename,
+                            fieldname,
+                            fileds
+                        )
+                        bh.obj = Obj(name=name, table=tablename, field=fieldname)
+                elif bh.pred.writable:
+                    newobj = Obj(
+                        name=name,
+                        table=(wf.dtd or wf.name),
+                        field=bh.fieldname(ctx["index"]),
+                    )
+                    bh.obj = newobj
+                    print(newobj)
 
     # 将谓语转换为谓语对象．
     def normpred(self, bh: Behave):
         if bh.pred and not isinstance(bh.pred, Pred):
             if not is_valid_string(bh.pred):
-                logger.error(
-                    _("behave predict '%s' is not a valid string") % (bh.pred)
-                )
+                logger.error(_("behave predict '%s' is not a valid string") % (bh.pred))
             name = bh.pred
             newpred = Dataop.mapbasic(name)
             if not isinstance(newpred, Pred):
                 # todo: 这是一个复合谓语，开始检索知识库，以确定谓语对象．并赋值给newpred.
-                logger.error(
-                    _("compound predict not implement: '%s'") % (name)
-                )
+                logger.error(_("compound predict not implement: '%s'") % (name))
                 pass
             bh.pred = newpred
 
@@ -117,9 +138,7 @@ class Integrity(Model):
         self.normpred(bh)
         name = bh.pred.name
         if not is_valid_string(name):
-            logger.error(
-                _("behave predict '%s' is not a valid string") % (name)
-            )
+            logger.error(_("behave predict '%s' is not a valid string") % (name))
 
         pred = bh.pred
         # todo: 处理状语．以确定执行时机.
@@ -133,9 +152,7 @@ class Integrity(Model):
                     # todo: 这里检索知识库，以确定dict.
                     Store.instance().env.warn(
                         "a001",
-                        _(
-                            "Cannot precisely deduce the type of '%s' in workflow '%s'."
-                        )
+                        _("Cannot precisely deduce the type of '%s' in workflow '%s'.")
                         % (obj, wf.name),
                         _("Assuming it is an object containing a string"),
                     )
@@ -143,6 +160,14 @@ class Integrity(Model):
                     fieldtype[obj] = "str"
                 else:
                     fieldtype = bh.datas
+
+                    if obj and not isinstance(obj, Obj):
+                        newobj = Obj(
+                            name=obj,
+                            table=(wf.dtd or wf.name),
+                            field=bh.fieldname(ctx["index"]),
+                        )
+                        bh.obj = newobj
             elif pred.outobj:
                 # @todo: 将这里与上面dtrmobj中的获取obj代码合并
                 objname = bh.obj
@@ -180,20 +205,22 @@ class Integrity(Model):
         orig = ctx["orig"]
         wf = ctx["wf"]
         wfcache = ctx["wfcache"]
+        bhidx = ctx["index"]
         if bh.subj and not isinstance(bh.subj, Subj):
             if not is_valid_string(bh.subj):
-                logger.error(
-                    _("behave subject '%s' is not a valid string") % (bh.subj)
-                )
+                logger.error(_("behave subject '%s' is not a valid string") % (bh.subj))
             name = bh.subj
+            # 如果主语的确定准则为ROLE,ALLOC.则添加主语字段,格式为"subj_idx"
             if ctx["index"] - ctx["notbhcount"] == 0:
                 bh.subj = Subj(dtrm=Subjdtrm.ROLE, name=name)
                 bh.subj.paras["role"] = name
                 self.omodel.enumfield("user", "role", name)
-                self.omodel.dtdfield(wf.dtd or wf.name, name, "user")
+                print("name=",name)
                 bh.subj.table = "user"
+                self.omodel.dtdfield(wf.dtd or wf.name, name, "user")
                 # todo: 处理定语．例如拥有蓝标的买家．
             else:  # 不是第一个行为．
+                # 与同一流程中的上一同名角色相同.
                 if orig.hasprevsubj(name, ctx["index"]):
                     bh.subj = Subj(dtrm=Subjdtrm.WF, name=name)
                     bh.subj.paras["role"] = name
@@ -216,6 +243,7 @@ class Integrity(Model):
                     if not isinstance(bh.subj, Subj):
                         bh.subj = Subj(dtrm=Subjdtrm.ALLOC, name=name)
                         self.omodel.enumfield("user", "role", name)
+                        self.omodel.dtdfield(wf.dtd or wf.name, name, "user")
 
             # print("convert subj to object:", bh.subj)
 

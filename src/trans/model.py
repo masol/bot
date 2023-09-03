@@ -15,6 +15,9 @@ class Model(TransformerMixin):
     def dofit(self, store):
         pass
 
+    def model(self, model_name):
+        return self.store.models.get(model_name, None)
+
     @property
     def omodel(self):
         if self.store and self.omname:
@@ -34,9 +37,7 @@ class Model(TransformerMixin):
                 self.ometype, type
             ):
                 store.models[self.omname] = self.ometype()
-        if is_valid_string(self.imname) and not store.models.get(
-            self.imname, None
-        ):
+        if is_valid_string(self.imname) and not store.models.get(self.imname, None):
             logger.error(
                 _(
                     "Invalid input model [bold green]%s[/bold green] for transformer [bold sky_blue2]%s[/bold sky_blue2]"
@@ -46,17 +47,13 @@ class Model(TransformerMixin):
         isverbose = getattr(store.env, "verbose", False)
         if isverbose:
             logger.info(
-                _(
-                    "[cyan3]Enter[/cyan3] fit of [bold sky_blue2]%s[/bold sky_blue2]"
-                )
+                _("[cyan3]Enter[/cyan3] fit of [bold sky_blue2]%s[/bold sky_blue2]")
                 % self.__class__.__name__
             )
         self.dofit(store)
         if isverbose:
             logger.info(
-                _(
-                    "[cyan]Leave[/cyan] fit of [bold sky_blue2]%s[/bold sky_blue2]"
-                )
+                _("[cyan]Leave[/cyan] fit of [bold sky_blue2]%s[/bold sky_blue2]")
                 % self.__class__.__name__
             )
         return self
@@ -77,7 +74,7 @@ class Model(TransformerMixin):
             )
         self.dotransform(store)
         if is_valid_string(self.omname):
-            if 'all' in dump_models or self.omname in dump_models:
+            if "all" in dump_models or self.omname in dump_models:
                 model = store.models.get(self.omname, None)
                 if model:
                     logger.info(pretty.pretty_repr(model))

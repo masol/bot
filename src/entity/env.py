@@ -4,6 +4,8 @@ import util.log as logger
 from util.str import is_valid_string
 
 from . import entity
+from appdirs import user_data_dir
+from os import path
 
 
 @define(slots=True)
@@ -24,6 +26,7 @@ class Env(entity.Entity):
     tolerant: bool = field(default=False)
     output_dir: str = field(default="target")
     kc_dir: str = field(default="")
+    force: bool = field(default=False)
 
     # 支持warn_as_error的warning.
     def warn(self, cate: str, msg: str, warn_ex_msg: str) -> None:
@@ -33,3 +36,11 @@ class Env(entity.Entity):
             logger.error(msg)
         else:
             logger.warn(msg + warn_ex_msg or "")
+
+    # 获取基于知识库中的子库目录．
+    def kcd_path(self, *args):
+        return path.join(self.kc_dir, *args)
+
+    def init(self) -> str:
+        if not is_valid_string(self.kc_dir):
+            self.kc_dir = user_data_dir(appname="bot", appauthor=False)

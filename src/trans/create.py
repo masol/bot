@@ -7,6 +7,7 @@ from .humod.humod import Humod
 from .integrity.integrity import Integrity
 from .jobduty.jobduty import JobDuty
 from .uipage.uipage import UIpage
+from .arch.arch import Arch
 from .database.database import Database
 from .gql.gql import Gql
 
@@ -15,6 +16,8 @@ def createModel(name: str):
         return Humod()
     elif name == 'jobduty':
         return JobDuty()
+    elif name == 'arch':
+        return Arch()
     elif name == 'uipage':
         return UIpage()
     elif name == 'integrity':
