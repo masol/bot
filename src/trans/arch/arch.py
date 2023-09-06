@@ -25,7 +25,7 @@ def get_edittype(typestr):
     types = typestr.split()
     # print("types", types)
     if len(types) >= 2:
-        print(types[1])
+        return types[1]
     return "Input"
 
 # 将fieldname标准化，移除可能的开头_,$以及结尾?
@@ -213,8 +213,8 @@ class Arch(Model):
 
         query_block.ensure("Pagination")
 
-        print(pretty.pretty_repr(query_api))
-        print(pretty.pretty_repr(page))
+        # print(pretty.pretty_repr(query_api))
+        # print(pretty.pretty_repr(page))
 
         # 添加create button.
         # 添加
@@ -223,7 +223,10 @@ class Arch(Model):
         pass
 
     def pred_except(self, duty, page):
-        print("pred exception!!")
+        inthumod = self.model("inthumod")
+        wf = inthumod.wfs[duty.wfs]
+        bh = wf.behaves[duty.bhs]
+        print(f"pred exception!!{bh.pred.act}未实现!")
         pass
 
     def proc_pred(self, bh, duty, page):
@@ -263,7 +266,6 @@ class Arch(Model):
 
                 self.proc_pred(bh, duty, page)
 
-                print()
                 # 为页面添加所需信息(特殊谓语，添加附加前置行为信息).[是否为列表]
                 # 为页面添加行为(Button)及状态．
                 # 为页面添加所需导航信息．
@@ -271,5 +273,5 @@ class Arch(Model):
                 # print(wf)
                 # print(duty)
             # print(rolename, roleinfo)
-        print(self.omodel.pages)
+        # print(self.omodel.pages)
         return store

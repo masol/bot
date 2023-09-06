@@ -28,6 +28,8 @@ class Env(entity.Entity):
     output_dir: str = field(default="target")
     kc_dir: str = field(default="")
     force: bool = field(default=False)
+    subdir: str = field(default="site")
+    app_base: str = field(default="")
 
     # 支持warn_as_error的warning.
     def warn(self, cate: str, msg: str, warn_ex_msg: str) -> None:
@@ -42,10 +44,18 @@ class Env(entity.Entity):
     def kcd_path(self, *args):
         return path.join(self.kc_dir, *args)
 
-    def full_outdir(self):
+    def app_path(self, *args):
+        if not is_valid_string(self.app_base):
+            self.app_base = path.normpath(
+                path.join(path.abspath(__file__), "..", "..", "..")
+            )
+        # print("self.app_base=", self.app_base)
+        return path.join(self.app_base, *args)
+
+    def full_outdir(self, *args):
         if path.isabs(self.output_dir):
             return self.output_dir
-        return path.join(getcwd(), self.output_dir)
+        return path.join(getcwd(), self.output_dir, *args)
 
     # 返回初始化是否成功．
     def init(self) -> bool:
@@ -86,4 +96,16 @@ class Env(entity.Entity):
     @staticmethod
     def is_directory_empty(dir_path):
         return not bool(listdir(dir_path))
+
+    @staticmethod
+    def writefile(filepath, content):
+        directory = path.dirname(filepath)
+        Env.mkdirs(directory)
+        with open(filepath, "w") as file:
+            file.write(content)
+
+    def cpbin(srcpath,destpath):
+        directory = path.dirname(destpath)
+        Env.mkdirs(directory)
+        shutil.copyfile(srcpath, destpath)
 

@@ -38,7 +38,7 @@ class Integrity(Model):
             )
             return store
 
-        print("%x" % md5hash("AUDITS"))
+        # print("%x" % md5hash("AUDITS"))
         # self.humodict = HumodDict()
         # self.humodict.load(imodel)
 
@@ -116,7 +116,7 @@ class Integrity(Model):
                         field=bh.fieldname(ctx["index"]),
                     )
                     bh.obj = newobj
-                    print(newobj)
+                    # print(newobj)
 
     # 将谓语转换为谓语对象．
     def normpred(self, bh: Behave):
@@ -215,7 +215,7 @@ class Integrity(Model):
                 bh.subj = Subj(dtrm=Subjdtrm.ROLE, name=name)
                 bh.subj.paras["role"] = name
                 self.omodel.enumfield("user", "role", name)
-                print("name=",name)
+                # print("name=",name)
                 bh.subj.table = "user"
                 self.omodel.dtdfield(wf.dtd or wf.name, name, "user")
                 # todo: 处理定语．例如拥有蓝标的买家．

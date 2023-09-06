@@ -126,6 +126,15 @@ def common_options(f):
             help=_("Directory where output files should be written.Default is target."),
         ),
         click.option(
+            "-b",
+            "--subdir",
+            multiple=False,
+            default="site",
+            help=_(
+                "Create a code that the homepage will automatically jump to the subdirectory specified here． The default is 'site'． Set to empty string to disable subdirectory mode."
+            ),
+        ),
+        click.option(
             "-f",
             "--force",
             is_flag=True,
@@ -139,7 +148,16 @@ def common_options(f):
 
 
 def get_opts(
-    verbose, warn_as_error, strict, dump_model, kc_dir, tolerant, output_dir, force, src
+    verbose,
+    warn_as_error,
+    strict,
+    dump_model,
+    kc_dir,
+    tolerant,
+    output_dir,
+    subdir,
+    force,
+    src,
 ) -> dict:
     dump_models = list()
     for m in dump_model:
@@ -159,6 +177,7 @@ def get_opts(
         "dump_models": dump_models,
         "kc_dir": kc_dir,
         "force": force,
+        "subdir": subdir,
         "src": src,
     }
     return opts

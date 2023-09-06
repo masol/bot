@@ -1,0 +1,4 @@
+{% set meta = {
+    'mode': 'binary',
+    'src': 'client/favicon.png'
+} %}

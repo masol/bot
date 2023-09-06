@@ -21,6 +21,7 @@ def build(opts: dict) -> None:  # type: ignore[type-arg]
         # 使用调用栈，构建pipeline.执行之得到最终源码．
         pipeline = createPipe(["humod", "integrity", "jobduty", "arch"])
         pipeline.fit_transform(store)
+        store.kc.dump(store)
 
     except LoggerExcept as e:
         pass
