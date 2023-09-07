@@ -133,6 +133,15 @@ class Block(Entity):
     # 下级block
     blocks: "list" = field(factory=list)
 
+    # 如果是block,提示block的作用
+    hints: "str" = field(default="")
+
+    # 按钮的标签及帮助．
+    label: str = field(default="")
+
+    # 创建代码时使用，用于保存渲染之后的代码文本．
+    code: str = field(default="")
+
     # 如果block不在子节点中，加入之．
     def ensure(self, blockortype, **kwargs):
         ret = blockortype
@@ -269,8 +278,6 @@ class Button(Block):
     # 触发地址:　"page://XXX","modal:/open|close|toggle/XXX","api://XXX"
     # 其中，page,modal无地址时，显示子block.
     href: "str" = field(default="")
-    # 按钮的标签．
-    label: str = field(default="Do!")
 
 
 # 语音/视频录入,valtype为"video"及"audio"

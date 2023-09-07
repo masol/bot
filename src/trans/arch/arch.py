@@ -28,18 +28,20 @@ def get_edittype(typestr):
         return types[1]
     return "Input"
 
+
 # 将fieldname标准化，移除可能的开头_,$以及结尾?
 def normal_fieldname(fieldname):
-    if fieldname.startswith('$'):
-        fieldname = fieldname[1:]
-    
-    if fieldname.startswith('-'):
+    if fieldname.startswith("$"):
         fieldname = fieldname[1:]
 
-    if fieldname.endswith('?'):
+    if fieldname.startswith("-"):
+        fieldname = fieldname[1:]
+
+    if fieldname.endswith("?"):
         fieldname = fieldname[:-1]
 
     return fieldname
+
 
 class Arch(Model):
     def __init__(self):
@@ -161,29 +163,38 @@ class Arch(Model):
             query_api.q_bind[bindname] = bindname
             query_api.indexes[search] = "fulltext"
         query_api.q_cond.append(ArchEntity.cond(orcond, "or"))
+        # 添加操作导航
+        manage_block = query_block.ensure("Group", hints="manage")
         # 添加search组件．
-        query_block.ensure("Input", param=bindname, cache="session")
+        manage_block.ensure("Input", param=bindname, hints="search", cache="session")
 
-        for order in ctx["order"]:
-            bindname = query_api.alloc_bind_var()
-            query_api.order[order] = bindname
-            query_block.ensure("Switch", param=bindname, cache="session")
+        if len(ctx["order"]) > 0:
+            order_group = manage_block.ensure("Group", hints="order")
+            for order in ctx["order"]:
+                bindname = query_api.alloc_bind_var()
+                query_api.order[order] = bindname
+                order_group.ensure(
+                    "Switch", param=bindname, hints="order", cache="session"
+                )
 
         # 开始加入卡片．并绑定其变量到返回值字段．其值都为api中的字段名，并附加如下额外变量名: maxpage
-        card_block = query_block.ensure("Group", id="id")
+        card_block = query_block.ensure("Group", hints="card", id="id")
         for field, type in ctx["fields"].items():
-            card_block.ensure(get_showtype(type), param=field, cache="none")
+            card_block.ensure(
+                get_showtype(type), label=field, param=field, cache="none"
+            )
 
-        edit_but = card_block.ensure("Button", label="编辑", href="page")
-        edit_block = edit_but.ensure("Group")
+        edit_but = card_block.ensure("Button", hints="edit", label="编辑", href="page")
+        edit_block = edit_but.ensure("Group", hints="edit")
+        # 为edit api提供可能的field列表．
         fields = list()
         for field, type in ctx["fields"].items():
-            item_block = edit_block.ensure("Group")
-            item_block.ensure("Label", defval=field)
             fieldname = f"${field}"
             fields.append(fieldname)
-            item_block.ensure(get_edittype(type), param=fieldname, cache="none")
-    
+            edit_block.ensure(
+                get_edittype(type), defval=field, param=fieldname, cache="none"
+            )
+
         edit_api = self.ensure_edit_api(bh.obj.table, bh.obj.field, fields)
         self.add_pre_cond(bh, edit_api)
         edit_block.ensure(
