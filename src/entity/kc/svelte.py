@@ -1,43 +1,61 @@
 from attrs import define, field
 from entity import entity
-from jinja2 import Environment, FileSystemLoader, Template
-from jinja2.meta import find_undeclared_variables
 from entity.env import Env
-from util.str import is_valid_string
+from util.str import is_valid_string, convert_to_base36
 from util.namer import Namer
-from datetime import datetime
 from rich import pretty
 from os import path
 
 
 from .constpl.gotopage import GOTO_PAGE_TPL
 from .constpl.layout import DEF_LAYOUT
-from .blkrender import render_block
-from .tpl import Tplbase
+from .blkrender import render_block, has_subpage, render_page
+from .tpl import Tplbase, DelayedTpl
 
-PAGE_SVELTE = "+page.svelte"
+
+@define(slots=True)
+class PageSt:
+    # 代码区，此部分放在block中自行保存．
+    # code: str = field(default="")
+    # importer部分．key为库名称，value为导入的内容．
+    importer: "dict[str,list]" = field(factory=dict)
 
 
 @define(slots=True)
 class GenpageCtx:
-    files: dict = field(factory=dict)
+    # 保存的文件对象．
+    files: "dict[str,PageSt]" = field(factory=dict)
+    # 文件的渲染结果．
+    filecnt: "dict[str,str]" = field(factory=dict)
+    # 根页面，也是block树的根．
     page: "Page" = field(default=None)
+    # 根页面收集到的渲染用变量．(考虑废弃)
     vars: dict = field(factory=dict)
+    # 全局store对象．
     store: "Store" = field(default=None)
+    # 当前处理的block路径．
     path: "list[Block]" = field(factory=list)
+    # 所属svelte对象．
     svelte: "Svelte" = field(default=None)
+    # 当前的子文件路径．在enter_block时处理．写入完毕后，pop之．全部连接起来，就是files中的key.
+    filepath: "list" = field(default=[])
+    # 为了简化名称命名，全部层级的路径共享一个计数器．
+    count: int = field(default=0)
+    # 当前主页面的输出目录．
+    outdir: str = field(default="")
 
+    # 获取当前页面对象．模板中的名称为"pageinfo".
+    def curpage(self):
+        curpath = "/".join(self.filepath)
+        if curpath not in self.files:
+            self.files[curpath] = PageSt()
+        return self.files[curpath]
 
-# 部分依赖变量需要其它部分，因此一个输出会被延迟．需要使用asyncio.coroutine来简化依赖处理．
-@define(slots=True)
-class DelayedTpl(entity.Entity):
-    outpath: str = field(default="")
-    # 模板对象．
-    template = field(default=None)
-    # 渲染模式，目前只支持page.
-    mode: str = field(default="")
-    render_vas: dict = field(default=None)
-    delayed_vars: dict = field(default=None)
+    # 创建一个ctx唯一的名称，用做子页面名．
+    def namer(self):
+        name = convert_to_base36(self.count)
+        self.count += 1
+        return name
 
 
 # 做为svelte的实现．当前尚未实现客户端知识库加载．
@@ -64,26 +82,44 @@ class Svelte(entity.Entity):
     def travel_block(self, block, ctx) -> None:
         for sublock in block.blocks:
             ctx.path.append(f"{sublock.type}_{sublock.hints}")
-            print("enter:", sublock.type, ctx.path)
+            # 检查block是否需要新建一个子页面．
+            newsubpage = has_subpage(sublock)
+            if newsubpage:
+                filename = ctx.namer()
+                ctx.filepath.append(filename)
+                if sublock.type == "Button":
+                    sublock.href = ctx.outdir + '/' + "/".join(ctx.filepath)
+            # print("enter:", sublock.type, ctx.path)
             self.travel_block(sublock, ctx)
             render_block(sublock, ctx)
             ctx.path.pop()
-            print("leave:", sublock.type)
+            if newsubpage:
+                render_page(filename, sublock, ctx)
+                # 因写入page,清空code,防止父blk组合代码时，意外插入此代码.
+                # sublock.code = ""
+                ctx.filepath.pop()
+                # print("filename=", filename, "code=", sublock.code)
+            # print("leave:", sublock.type)
 
     # 返回字符串或字典．字典代表了多个文件．key为文件名，如果value为字符串，则为内容．
-    def gen_page(self, store, page, render_vars):
-        ctx = GenpageCtx(page=page, vars=render_vars, store=store, svelte=self)
+    def gen_page(self, store, page, render_vars, outdir):
+        ctx = GenpageCtx(
+            page=page, vars=render_vars, store=store, svelte=self, outdir=outdir
+        )
         # 深度遍历
         self.travel_block(page, ctx)
-        ctx.files[PAGE_SVELTE] = "2222"
-        return ctx.files
+        # 将subblock的code合并到page.code中．
+        # page.code = "\n".join([block.code for block in page.blocks])
+        render_page("", page, ctx)
+        # print(ctx.filecnt)
+        return ctx.filecnt
 
     def render_tpl(self, store, tpl_source, source_name):
         gathered_vars = self.page_tpl.gather_base(store, tpl_source, source_name)
         render_vars = gathered_vars.vars
         if len(gathered_vars.delay) > 0:
             raise ValueError(f"在渲染{source_name}时，遭遇延迟变量，需要coroute改写创建过程！")
-        return Template(tpl_source).render(render_vars)
+        return self.page_tpl.render_src(tpl_source, render_vars)
 
     def dump_all_page(self, store, basepath, render_vars):
         model = store.models["arch"]
@@ -109,11 +145,10 @@ class Svelte(entity.Entity):
                 dirname = store.env.subdir
 
             outdir = path.join(basepath, dirname)
-            pagecnt = self.gen_page(store, page, render_vars)
+            pagecnt = self.gen_page(store, page, render_vars, outdir)
             for fname, content in pagecnt.items():
                 if is_valid_string(content):
                     store.env.writefile(path.join(outdir, fname), content)
-        pass
 
     def dump(self, store):
         model = store.models["arch"]
@@ -121,7 +156,7 @@ class Svelte(entity.Entity):
         if not anonymous:  # @todo: 未确定默认角色．
             raise ValueError("当前未指定匿名角色．")
         self.page_namer.reserved[model.roles[anonymous].home] = "index.html"
-        self.page_namer.suffix = ".html"
+        self.page_namer.suffix = ""
 
         cfg_env = store.env
 

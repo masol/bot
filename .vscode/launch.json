@@ -8,7 +8,7 @@
       "module": "src",
       "justMyCode": true,
       "cwd": "${workspaceFolder}",
-      "args": ["gen", "example/simple/wf.js"],
+      "args": ["gen", "example/simple/wf.js", "-f"],
       "env": {
         "PYTHONPATH": "${workspaceFolder}/src:${env:PYTHONPATH}"
       },

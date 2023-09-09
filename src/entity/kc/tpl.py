@@ -6,6 +6,13 @@ from util.str import is_valid_string
 import re
 from datetime import datetime
 
+# 为了方便，添加在jinjia2中的一些函数．
+# 1. 导出importer:
+def render_importer(importer):
+    ret = ""
+    for lib, eles in importer.items():
+        ret += f"import {{ {','.join(eles)} }} from '{lib}';\n"
+    return ret
 
 # 部分依赖变量需要其它部分，因此一个输出会被延迟．需要使用asyncio.coroutine来简化依赖处理．
 @define(slots=True)
@@ -27,7 +34,7 @@ class GatheredVars(entity.Entity):
     delay: "dict" = field(factory=dict)
 
     # 基础收集．vars中的已确定的变量会被移除．
-    def gather_base(self, store, undeclared):
+    def gather_base(self, store, undeclared, var_dict=None):
         const_dict = {"compath": "src/components"}
         const_vars = set(const_dict.keys())
         env_vars = {"subdir"}
@@ -45,12 +52,15 @@ class GatheredVars(entity.Entity):
             elif key == "project_name":  # @TODO: 在输入文件中定义option.
                 self.vars[key] = "client"
                 to_del.append(key)
+            elif key in var_dict:  # 从给定的字典中获取．
+                self.vars[key] = var_dict[key]
+                to_del.append(key)
         for key in to_del:
             undeclared.remove(key)
 
     def chk_undeclared(undeclared, template_name):
         if len(undeclared) > 0:
-            raise ValueError(f"无法识别模板{template_name}中定义的变量:{list(undeclared.keys())}")
+            raise ValueError(f"无法识别模板{template_name}中定义的变量:{list(undeclared)}")
 
 
 # 维护知识库中的模板．
@@ -68,6 +78,7 @@ class Tplbase(entity.Entity):
             comment_start_string="{${",
             comment_end_string="=}$}",
         )
+        self.env.globals["render_importer"] = render_importer
 
     # 获取特定名称的模板．
     def get_template(self, name):
@@ -91,10 +102,29 @@ class Tplbase(entity.Entity):
     def get_tpl_source(self, template_name):
         return self.env.loader.get_source(self.env, template_name)[0]
 
-    # 基础收集．返回GatheredVars.
-    def gather_base(self, store, template_source, template_name) -> GatheredVars:
+    # 基础收集．返回GatheredVars.extra_gather是一个字典，如果给定，保存了block等额外变量．
+    def gather_base(
+        self, store, template_source, template_name, var_dict=None
+    ) -> GatheredVars:
         undeclared = self.get_undeclared_variables(template_source)
         ret: "GatheredVars" = GatheredVars()
-        ret.gather_base(store, undeclared)
+        ret.gather_base(store, undeclared, var_dict)
         GatheredVars.chk_undeclared(undeclared, template_name)
         return ret
+
+    # 获取模板，其路径为features路径的一个子集．返回最长匹配．
+    def match_feature(self, features: "list[str]"):
+        # 列出所有可能的feature名．
+        all_templates = self.env.list_templates()
+        possible = set()
+        for t in all_templates:
+            if t in features:
+                possible.add(t)
+
+        if len(possible) == 0:
+            return None
+        return max(possible, key=len)
+
+    def render_src(self, template_source, render_vars):
+        template = self.env.from_string(template_source)
+        return template.render(render_vars)

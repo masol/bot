@@ -1,4 +1,5 @@
 {
   "eslint.enable": false,
-  "json.validate": false
+  "json.validate": false,
+  "svelte.plugin.svelte.diagnostics.enable": false
 }
