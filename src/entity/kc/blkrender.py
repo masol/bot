@@ -3,6 +3,7 @@ from util.str import is_valid_string
 from .constpl.sveltepage import SVELTE_PAGE_TPL
 
 from os import path
+
 PAGE_SVELTE = "+page.svelte"
 
 
@@ -20,7 +21,9 @@ def render_page(filename, block, ctx) -> None:
     undeclared_vars = comp_tpl.gather_base(
         ctx.store, SVELTE_PAGE_TPL, filename, get_render_vars(block, ctx)
     )
-    ctx.filecnt[path.join(filename,PAGE_SVELTE)] = comp_tpl.render_src(SVELTE_PAGE_TPL, undeclared_vars.vars)
+    ctx.filecnt[path.join(filename, PAGE_SVELTE)] = comp_tpl.render_src(
+        SVELTE_PAGE_TPL, undeclared_vars.vars
+    )
 
 
 # 静态类，确定svelte块的内容,选择知识库中的block模板，并渲染之．
@@ -41,8 +44,8 @@ def render_block(block, ctx) -> bool:
         features.append(f"{tplname}.svelte")
 
     template_name = comp_tpl.match_feature(features)
-    print(features, template_name)
     if not is_valid_string(template_name):
+        print("缺少知识:", features, template_name)
         template_name = f"default.svelte"
         # raise ValueError(f"无法加载{block.type}的基础模板")
 
@@ -51,7 +54,7 @@ def render_block(block, ctx) -> bool:
     # 获取meta信息，并将importer等内容加入到page中．
     if "meta" in template.module.__dict__:
         meta = template.module.__dict__["meta"]
-        print("test", ctx.curpage())
+        # print("test", ctx.curpage())
         if isinstance(meta, dict):
             if "import" in meta:  # 定义了import,加入当前页面
                 curpage = ctx.curpage()

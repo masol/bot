@@ -275,7 +275,7 @@ class Input(SingleValue):
 @define(slots=True, frozen=False, eq=False)
 class Button(Block):
     type: str = field(default="Button")
-    # 触发地址:　"page://XXX","modal:/open|close|toggle/XXX","api://XXX"
+    # 触发地址:　"page://XXX","modal://XXX#act=open|close|toggle","api://XXX"
     # 其中，page,modal无地址时，显示子block.
     href: "str" = field(default="")
 

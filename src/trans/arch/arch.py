@@ -184,7 +184,7 @@ class Arch(Model):
                 get_showtype(type), label=field, param=field, cache="none"
             )
 
-        edit_but = card_block.ensure("Button", hints="edit", label="编辑", href="page")
+        edit_but = card_block.ensure("Button", hints="edit", label="编辑", href="")
         edit_block = edit_but.ensure("Group", hints="edit")
         # 为edit api提供可能的field列表．
         fields = list()
@@ -192,7 +192,11 @@ class Arch(Model):
             fieldname = f"${field}"
             fields.append(fieldname)
             edit_block.ensure(
-                get_edittype(type), defval=field, param=fieldname, cache="none"
+                get_edittype(type),
+                label=field,
+                defval=field, #todo: generate default value.
+                param=fieldname,
+                cache="none",
             )
 
         edit_api = self.ensure_edit_api(bh.obj.table, bh.obj.field, fields)

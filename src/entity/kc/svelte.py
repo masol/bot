@@ -5,7 +5,7 @@ from util.str import is_valid_string, convert_to_base36
 from util.namer import Namer
 from rich import pretty
 from os import path
-
+from urllib.parse import urlparse
 
 from .constpl.gotopage import GOTO_PAGE_TPL
 from .constpl.layout import DEF_LAYOUT
@@ -41,7 +41,7 @@ class GenpageCtx:
     filepath: "list" = field(default=[])
     # 为了简化名称命名，全部层级的路径共享一个计数器．
     count: int = field(default=0)
-    # 当前主页面的输出目录．
+    # 当前主页面的输出目录,是URL绝对目录，不是文件路径．
     outdir: str = field(default="")
 
     # 获取当前页面对象．模板中的名称为"pageinfo".
@@ -71,12 +71,20 @@ class Svelte(entity.Entity):
     delay_tpls: "list[DelayedTpl]" = field(factory=list)
     page_namer: "Namer" = field(factory=Namer)
 
-    def enter_block(self, block, ctx):
-        pass
-
-    def leave_block(self, block, ctx):
-        # 子节点的内容被dump为字符串,并做为参数render本block.
-        pass
+    def cvt_href(self, href, ctx):
+        store = ctx.store
+        print('href=',href)
+        if is_valid_string(href):
+            result = urlparse(href)
+            print(result)
+            if result.scheme == 'page':
+                return self.get_pagename(store,result.netloc)
+            # elif result.scheme == 'api':
+            # else:
+            #     raise ValueError("尚未实现的api")
+        else:
+            return "/" + ctx.outdir + "/" + "/".join(ctx.filepath)
+        return 'javascript:void(0)'
 
     # 深度优先，在leave时处理，渲染并将代码保存到对应block.code中．
     def travel_block(self, block, ctx) -> None:
@@ -87,9 +95,9 @@ class Svelte(entity.Entity):
             if newsubpage:
                 filename = ctx.namer()
                 ctx.filepath.append(filename)
-                if sublock.type == "Button":
-                    sublock.href = ctx.outdir + '/' + "/".join(ctx.filepath)
             # print("enter:", sublock.type, ctx.path)
+            if sublock.type == "Button":
+                sublock.href = self.cvt_href(sublock.href, ctx)
             self.travel_block(sublock, ctx)
             render_block(sublock, ctx)
             ctx.path.pop()
@@ -121,6 +129,12 @@ class Svelte(entity.Entity):
             raise ValueError(f"在渲染{source_name}时，遭遇延迟变量，需要coroute改写创建过程！")
         return self.page_tpl.render_src(tpl_source, render_vars)
 
+    def get_pagename(self, store, pagename):
+        filename = self.page_namer.name(pagename)
+        if is_valid_string(store.env.subdir):
+            return '/' + store.env.subdir + '/' + filename
+        return "/" + filename
+
     def dump_all_page(self, store, basepath, render_vars):
         model = store.models["arch"]
         for pagename, page in model.pages.items():
@@ -145,7 +159,7 @@ class Svelte(entity.Entity):
                 dirname = store.env.subdir
 
             outdir = path.join(basepath, dirname)
-            pagecnt = self.gen_page(store, page, render_vars, outdir)
+            pagecnt = self.gen_page(store, page, render_vars, dirname)
             for fname, content in pagecnt.items():
                 if is_valid_string(content):
                     store.env.writefile(path.join(outdir, fname), content)
