@@ -1,0 +1,24 @@
+{
+  "$id": "/v1/auth/login",
+  "type": "object",
+  "properties": {
+    "username": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 3
+    },
+    "password": {
+      "type": "string",
+      "maxLength": 128,
+      "minLength": 3
+    },
+    "keep": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "username",
+    "password"
+  ]
+}

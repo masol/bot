@@ -1,0 +1,12 @@
+type Query {
+OS: String
+Code:String
+Search:[String]
+Sidebar:Prefer
+}
+
+
+type Prefer {
+familiarity:Float
+keywords: [String]
+}
