@@ -68,10 +68,10 @@ class Env(entity.Entity):
             if path.isdir(target):
                 if self.force:
                     if self.verbose:
-                        logger.info(f"输出目录'{target}'不为空，删除之.")
-                    shutil.rmtree(target)
+                        logger.info(f"输出目录'{target}'不为空，但是指定了--force参数，覆盖之.\n\t您可以在调用命令前自行删除．")
+                    # shutil.rmtree(target)
                 elif not Env.is_directory_empty(target):
-                    logger.error(f"输出目录'{target}'已经存在并且不为空．")
+                    logger.error(f"输出目录'{target}'已经存在并且不为空，如需要覆盖，请添加--force命令行参数．")
                     return False
             else:
                 if self.force:

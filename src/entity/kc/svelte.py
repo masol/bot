@@ -73,18 +73,18 @@ class Svelte(entity.Entity):
 
     def cvt_href(self, href, ctx):
         store = ctx.store
-        print('href=',href)
+        print("href=", href)
         if is_valid_string(href):
             result = urlparse(href)
             print(result)
-            if result.scheme == 'page':
-                return self.get_pagename(store,result.netloc)
+            if result.scheme == "page":
+                return self.get_pagename(store, result.netloc)
             # elif result.scheme == 'api':
             # else:
             #     raise ValueError("尚未实现的api")
         else:
             return "/" + ctx.outdir + "/" + "/".join(ctx.filepath)
-        return 'javascript:void(0)'
+        return "javascript:void(0)"
 
     # 深度优先，在leave时处理，渲染并将代码保存到对应block.code中．
     def travel_block(self, block, ctx) -> None:
@@ -132,7 +132,7 @@ class Svelte(entity.Entity):
     def get_pagename(self, store, pagename):
         filename = self.page_namer.name(pagename)
         if is_valid_string(store.env.subdir):
-            return '/' + store.env.subdir + '/' + filename
+            return "/" + store.env.subdir + "/" + filename
         return "/" + filename
 
     def dump_all_page(self, store, basepath, render_vars):
@@ -164,6 +164,11 @@ class Svelte(entity.Entity):
                 if is_valid_string(content):
                     store.env.writefile(path.join(outdir, fname), content)
 
+    def dump_mode(self, dump_mode, store, outpath, gather_info):
+        if dump_mode == "page":
+            return self.dump_all_page(store, outpath, gather_info.vars)
+        raise ValueError(f"svelte中未支持渲染模式{dump_mode}")
+
     def dump(self, store):
         model = store.models["arch"]
         anonymous = model.anonymous
@@ -172,51 +177,11 @@ class Svelte(entity.Entity):
         self.page_namer.reserved[model.roles[anonymous].home] = "index.html"
         self.page_namer.suffix = ""
 
-        cfg_env = store.env
-
-        all_templates = self.page_tpl.list_templates()
-        for template_name in all_templates:
-            # # 加载模板
-            # {% set meta_title = "My Page Title" %}
-            template = self.page_tpl.get_template(template_name)
-            outname = template_name
-            dump_mode = None
-            gather_info = self.page_tpl.gather_base(
-                store, self.page_tpl.get_tpl_source(template_name), template_name
-            )
-            src_path = None
-
-            if "meta" in template.module.__dict__:
-                meta = template.module.__dict__["meta"]
-                if isinstance(meta, dict):
-                    if "mode" in meta:  # 有效的mode: page
-                        dump_mode = meta["mode"]
-                    # 如果meta中定义了输出文件名．则采用此名称．
-                    if "fname" in meta:
-                        outname = meta["fname"]
-                    if "src" in meta:
-                        src_path = meta["src"]
-
-            if path.isabs(outname):
-                raise ValueError("给定的路径为全路径！")
-
-            outpath = cfg_env.full_outdir("client", outname)
-            if len(gather_info.delay) > 0:
-                delay = DelayedTpl(
-                    mode=dump_mode,
-                    outpath=outpath,
-                    render_vars=gather_info.vars,
-                    delayed_vars=gather_info.delay,
-                )
-                self.delay_tpls.append(delay)
-            elif dump_mode == "page":
-                self.dump_all_page(store, outpath, gather_info.vars)
-            elif dump_mode == "binary":
-                Env.cpbin(cfg_env.app_path("kc", "binary", src_path), outpath)
-            else:
-                Env.writefile(outpath, template.render(gather_info.vars))
-
-        # print(pretty.pretty_repr(model))
+        self.page_tpl.render_all(
+            store,
+            "client",
+            self.dump_mode
+        )
 
     def load(self, env: Env):
         self.page_tpl.load(env.app_path("kc", "client"))

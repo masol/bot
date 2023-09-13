@@ -1,10 +1,13 @@
 from attrs import define, field
 from entity import entity
+from entity.env import Env
+from os import path
 from jinja2 import Environment, FileSystemLoader, Template
 from jinja2.meta import find_undeclared_variables
 from util.str import is_valid_string
 import re
 from datetime import datetime
+
 
 # 为了方便，添加在jinjia2中的一些函数．
 # 1. 导出importer:
@@ -13,6 +16,7 @@ def render_importer(importer):
     for lib, eles in importer.items():
         ret += f"import {{ {','.join(eles)} }} from '{lib}';\n"
     return ret
+
 
 # 部分依赖变量需要其它部分，因此一个输出会被延迟．需要使用asyncio.coroutine来简化依赖处理．
 @define(slots=True)
@@ -128,3 +132,51 @@ class Tplbase(entity.Entity):
     def render_src(self, template_source, render_vars):
         template = self.env.from_string(template_source)
         return template.render(render_vars)
+
+    # 渲染库中的全部模板，输出到output_dir下．对于特定的dump_mode,调用dump_mode_func来处理．
+    def render_all(self, store, output_dir, dump_mode_func):
+        cfg_env = store.env
+        all_templates = self.list_templates()
+        for template_name in all_templates:
+            # # 加载模板
+            # {% set meta_title = "My Page Title" %}
+            template = self.get_template(template_name)
+            outname = template_name
+            dump_mode = None
+            gather_info = self.gather_base(
+                store, self.get_tpl_source(template_name), template_name
+            )
+            src_path = None
+
+            if "meta" in template.module.__dict__:
+                meta = template.module.__dict__["meta"]
+                if isinstance(meta, dict):
+                    if "mode" in meta:  # 有效的mode: page
+                        dump_mode = meta["mode"]
+                    # 如果meta中定义了输出文件名．则采用此名称．
+                    if "fname" in meta:
+                        outname = meta["fname"]
+                    if "src" in meta:
+                        src_path = meta["src"]
+
+            if path.isabs(outname):
+                raise ValueError("给定的路径为全路径！")
+
+            outpath = cfg_env.full_outdir(output_dir, outname)
+            if len(gather_info.delay) > 0:
+                delay = DelayedTpl(
+                    mode=dump_mode,
+                    outpath=outpath,
+                    render_vars=gather_info.vars,
+                    delayed_vars=gather_info.delay,
+                )
+                self.delay_tpls.append(delay)
+            elif not is_valid_string(dump_mode):
+                Env.writefile(outpath, template.render(gather_info.vars))
+            elif dump_mode == "binary":
+                Env.cpbin(cfg_env.app_path("kc", "binary", src_path), outpath)
+            else:
+                if callable(dump_mode_func):
+                    dump_mode_func(dump_mode, store, outpath, gather_info)
+                else:
+                    raise ValueError(f"模板{template_name}中含有不能处理的渲染模式{dump_mode}")
