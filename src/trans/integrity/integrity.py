@@ -101,18 +101,18 @@ class Integrity(Model):
                         fileds['$审核$'] = 'bool'
                         fileds['$撤销请求$'] = 'bool'
                         fileds['$审核时间$'] = 'time'
-                        tablename= (wf.dtd or wf.name)
+                        tablename= wf.tablename()
                         fieldname = bh.fieldname(ctx["index"])
                         self.omodel.dtdfield(
                             tablename,
                             fieldname,
                             fileds
                         )
-                        bh.obj = Obj(name=name, table=tablename, field=fieldname)
+                        bh.obj = Obj(name=name, table=tablename, field=prevobj.field)
                 elif bh.pred.writable:
                     newobj = Obj(
                         name=name,
-                        table=(wf.dtd or wf.name),
+                        table=wf.tablename(),
                         field=bh.fieldname(ctx["index"]),
                     )
                     bh.obj = newobj
@@ -164,7 +164,7 @@ class Integrity(Model):
                     if obj and not isinstance(obj, Obj):
                         newobj = Obj(
                             name=obj,
-                            table=(wf.dtd or wf.name),
+                            table=wf.tablename(),
                             field=bh.fieldname(ctx["index"]),
                         )
                         bh.obj = newobj
@@ -190,7 +190,7 @@ class Integrity(Model):
                     )
                 pass
             self.omodel.dtdfield(
-                wf.dtd or wf.name,
+                wf.tablename(),
                 bh.fieldname(ctx["index"]),
                 fieldtype,
             )
@@ -217,7 +217,7 @@ class Integrity(Model):
                 self.omodel.enumfield("user", "role", name)
                 # print("name=",name)
                 bh.subj.table = "user"
-                self.omodel.dtdfield(wf.dtd or wf.name, name, "user")
+                self.omodel.dtdfield(wf.tablename(), name, "user")
                 # todo: 处理定语．例如拥有蓝标的买家．
             else:  # 不是第一个行为．
                 # 与同一流程中的上一同名角色相同.
@@ -243,7 +243,7 @@ class Integrity(Model):
                     if not isinstance(bh.subj, Subj):
                         bh.subj = Subj(dtrm=Subjdtrm.ALLOC, name=name)
                         self.omodel.enumfield("user", "role", name)
-                        self.omodel.dtdfield(wf.dtd or wf.name, name, "user")
+                        self.omodel.dtdfield(wf.tablename(), name, "user")
 
             # print("convert subj to object:", bh.subj)
 

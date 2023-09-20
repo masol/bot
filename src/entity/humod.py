@@ -11,7 +11,7 @@ class Subjdtrm(Enum):
     WF = auto()  # 工作流程中前置角色相同
     PREOBJ = auto()  # 通过前置行为的宾语关联．
     ALLOC = auto()  # 随机分配一个对应角色．
-    MODIF = auto() # 筛选器，尚未实现．
+    MODIF = auto()  # 筛选器，尚未实现．
 
 
 class Reldtrm(Enum):
@@ -174,6 +174,7 @@ class Behave(Entity):
     # 相同主语的附加的其它可选动作.(例如审批，当前行为在同一界面同时存在)
     cncnt: "list[Cncnt]" = field(factory=list, metadata={"childtype": Cncnt})
 
+    # 获取field字段自身的字段名称．
     def fieldname(self, index: int) -> str:
         predname = self.pred
         if isinstance(self.pred, Pred):
@@ -238,6 +239,9 @@ class Workflow(Entity):
                     "field": bh.fieldname(index),
                 }
         return ret
+    
+    def tablename(self):
+        return self.dtd or self.name
 
 
 @define(slots=True, frozen=False, eq=False)
@@ -270,6 +274,7 @@ class Humod(Entity):
     #     ctx = inst.getctx(HUMOD_CTX_NAME)
     #     ctx.add_entity("wfs", self.wfs)
     #     ctx.add_entity("dtds", self.dtds)
+    # 获取dtd字段类型
     def getdtdfield(self, tablename: str, fieldname: str):
         if tablename in self.dtds:
             fields = self.dtds[tablename].fields
@@ -277,12 +282,14 @@ class Humod(Entity):
                 return fields[fieldname]
         return None
 
+    # 设置dtd字段类型
     def dtdfield(self, tablename, fieldname, typename):
         if not tablename in self.dtds:
             self.dtds[tablename] = Dtd(name=tablename, fields={fieldname: typename})
         else:
             self.dtds[tablename].fields[fieldname] = typename
 
+    # 设置枚举型字段
     def enumfield(self, tablename, fieldname, enumval):
         if not tablename in self.dtds:
             self.dtds[tablename] = Dtd(name=tablename, fields={fieldname: [enumval]})
