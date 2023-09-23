@@ -25,6 +25,13 @@ class FieldsCtx(Entity):
     classify: list = field(factory=list)
 
 
+internal_types = {
+    "str": "Desc",
+    "string": "Desc",
+    "bool": "Prop Switch",
+}
+
+
 class ArchUtil:
     @staticmethod
     def get_pagename(rolename, wf, bh_idx):
@@ -73,6 +80,13 @@ class ArchUtil:
         type_dict = {"名称": "Title", "图片": "Image", "库存": "Prop Slide"}
         return type_dict.get(field_name, "Desc")
 
+    # 如果typename(dtd json中的值)是内部类型,则映射为对应的Block.
+    @staticmethod
+    def type2block(typename):
+        if typename in internal_types.keys():
+            return internal_types[typename]
+        return typename
+
     @staticmethod
     def get_fields(arch, bh):
         inthumod = arch.model("inthumod")
@@ -85,10 +99,10 @@ class ArchUtil:
     @staticmethod
     def is_rm_field(key, value, ctx):
         return True
-    
+
     # 返回bh对应的field名称．
     @staticmethod
-        # 获取行为对应的字段(内部调用bh.fieldname)．如果不存在，返回None. idx为bh所处的索引．
+    # 获取行为对应的字段(内部调用bh.fieldname)．如果不存在，返回None. idx为bh所处的索引．
     def getbhfieldname(wf: "Workflow", bh: "Behave"):
         idx = 0
         for b in wf.behaves:
@@ -100,7 +114,6 @@ class ArchUtil:
             # return None
         return bh.fieldname(idx)
 
-
     # 对需要处理的fields做处理，
     # 1. 补齐类型．
     # 2. 条件式移除内建变量($XXX$)格式．
@@ -111,11 +124,15 @@ class ArchUtil:
             if key.startswith("$") and key.endswith("$"):
                 if ArchUtil.is_rm_field(key, value, ctx):
                     removed_keys.add(key)
+
             if isinstance(value, dict):
                 ctx.multi = True
                 ArchUtil.proc_fields(value, ctx)
             elif not is_valid_string(value):
                 fields[key] = ArchUtil.fill_types(key, fields)
+            else:
+                fields[key] = ArchUtil.type2block(value)
+
             if fields[key] == "Title" and not is_valid_string(ctx.key):
                 ctx.key = key
 

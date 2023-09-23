@@ -18,6 +18,6 @@ class Store:
         self.env = Env(**opts)
         if not self.env.init():
             return False
-        self.kc.scan(self.env)
+        self.kc.scan(self)
         return True
         # print(self.env)

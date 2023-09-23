@@ -17,12 +17,13 @@ def get_render_vars(block, ctx):
 
 # 当前block渲染完毕时，如果是一个页面/子页面，将ctx中的页面对象生成．
 def render_page(filename, block, ctx) -> None:
-    comp_tpl = ctx.svelte.comp_tpl
-    undeclared_vars = comp_tpl.gather_base(
+    comp_tpl = ctx.svelte.comp_tplset
+    vars_info = comp_tpl.gather_base(
         ctx.store, SVELTE_PAGE_TPL, filename, get_render_vars(block, ctx)
     )
+    vars_info.dump_imgs(ctx)
     ctx.filecnt[path.join(filename, PAGE_SVELTE)] = comp_tpl.render_src(
-        SVELTE_PAGE_TPL, undeclared_vars.vars
+        SVELTE_PAGE_TPL, vars_info.vars
     )
 
 
@@ -30,7 +31,7 @@ def render_page(filename, block, ctx) -> None:
 # 调用时，确保子block已经渲染完成(code已有内容)
 def render_block(block, ctx) -> bool:
     # 从ctx获取模板(comp_tpl)．
-    comp_tpl = ctx.svelte.comp_tpl
+    comp_tpl = ctx.svelte.comp_tplset
     # 从block中获取模板名称．@TODO:这里需要综合利用子节点数量，label等信息，结合数据库来筛选．
     # 此处的实现为极简，功能有限，等待改进．
     # features = [block.type]

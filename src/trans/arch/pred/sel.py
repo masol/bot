@@ -20,7 +20,6 @@ class SelPred(PredBase):
             print("NOT IMPLEMENT")
         else:
             PredBase.create_sel_one(ctx, card_block, arch, page, wf, bh)
-            print("SEL!")
 
         query_block.ensure("Pagination")
 

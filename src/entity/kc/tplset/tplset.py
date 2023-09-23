@@ -2,11 +2,17 @@ from attrs import define, field
 from entity import entity
 from entity.env import Env
 from os import path
-from jinja2 import Environment, FileSystemLoader, Template
+from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from jinja2.meta import find_undeclared_variables
 from util.str import is_valid_string
 import re
-from datetime import datetime
+from PIL import Image
+import numpy as np
+from os import path
+
+from ..framework.project import Project
+
+SETUPTPL_NAME = "config.tpl"
 
 
 # 为了方便，添加在jinjia2中的一些函数．
@@ -36,6 +42,8 @@ class GatheredVars(entity.Entity):
     vars: "dict" = field(factory=dict)
     # 延迟变量，需要给出依赖信息．
     delay: "dict" = field(factory=dict)
+    # 需要创建的图片文件．
+    images: "list" = field(factory=list)
 
     # 基础收集．vars中的已确定的变量会被移除．
     def gather_base(self, store, undeclared, var_dict=None):
@@ -56,9 +64,37 @@ class GatheredVars(entity.Entity):
             elif key == "project_name":  # @TODO: 在输入文件中定义option.
                 self.vars[key] = "client"
                 to_del.append(key)
-            elif key in var_dict:  # 从给定的字典中获取．
+            elif isinstance(var_dict, dict) and key in var_dict:  # 从给定的字典中获取．
                 self.vars[key] = var_dict[key]
                 to_del.append(key)
+            elif key.startswith("img_"):
+                # tk is temp key.
+                tokens = key[len("img_") :].split("__")
+                w = 256
+                h = 256
+                suffix = "jpg"
+                transparent = False
+                filename = ""
+                if len(tokens) > 1:  # 定义了图片尺寸．
+                    size = tokens[0].split("_")
+                    w = int(size[0])
+                    if len(size) > 1:
+                        h = int(size[1])
+                    else:
+                        h = w
+                fnparts = tokens[-1].split("_")
+                if fnparts[-1].lower() in image_formats:
+                    suffix = fnparts[-1].lower()
+                    transparent = suffix in transparent_formats
+                    fnparts.pop()
+                filename = "/".join(fnparts) + "." + suffix
+                img_info = ImageInfo(
+                    filename=filename, width=w, height=h, transparent=transparent
+                )
+                self.images.append(img_info)
+                self.vars[key] = "{" + "/".join(fnparts) + "}"
+                to_del.append(key)
+                # print("img_info=", img_info)
         for key in to_del:
             undeclared.remove(key)
 
@@ -66,10 +102,30 @@ class GatheredVars(entity.Entity):
         if len(undeclared) > 0:
             raise ValueError(f"无法识别模板{template_name}中定义的变量:{list(undeclared)}")
 
+    def dump_imgs(self, output_dir):
+        if len(self.images) > 0:
+            print("dump_imgs output_dir=", output_dir)
+        for img in self.images:
+            print(img)
+            # 生成随机颜色的像素
+            pixel_data = np.random.randint(
+                0,
+                255,
+                (img.width, img.height, 4 if img.transparent else 3),
+                dtype=np.uint8,
+            )
+            # 创建一个新的图像
+            imgobj = Image.fromarray(pixel_data)
+            # 保存为PNG格式的图片
+            filepath = path.join(output_dir, img.filename)
+            directory = path.dirname(filepath)
+            Env.mkdirs(directory)
+            imgobj.save(filepath)
+
 
 # 维护知识库中的模板．
 @define(slots=True)
-class Tplbase(entity.Entity):
+class Tplset:
     loader = field(default=None)
     env = field(default=None)
 
@@ -133,50 +189,64 @@ class Tplbase(entity.Entity):
         template = self.env.from_string(template_source)
         return template.render(render_vars)
 
+    def render_template(self, template_name, req, res: Project):
+        cfg_env = req.store.env
+        template = self.get_template(template_name)
+        outname = template_name
+        dump_mode = None
+        undeclared = self.get_undeclared_variables(self.get_tpl_source(template_name))
+        render_vars = res.get_vars(req, undeclared, template_name)
+        # gather_info = self.gather_base(
+        #     req.store, self.get_tpl_source(template_name), template_name
+        # )
+        src_path = None
+        norender = False
+
+        if "meta" in template.module.__dict__:
+            meta = template.module.__dict__["meta"]
+            if isinstance(meta, dict):
+                if "mode" in meta:  # 有效的mode: page
+                    dump_mode = meta["mode"]
+                # 如果meta中定义了输出文件名．则采用此名称．
+                if "fname" in meta:
+                    outname = meta["fname"]
+                if "src" in meta:
+                    src_path = meta["src"]
+                if "norender" in meta:
+                    norender = meta["norender"]
+
+        if norender:
+            return
+
+        if path.isabs(outname):
+            raise ValueError(f"模板中给定的路径{outname}为全路径！")
+
+        outpath = res.target_dir(outname)
+        # gather_info.dump_imgs(res.target_dir("src", "lib", "images"))
+        # if len(gather_info.delay) > 0:
+        #     delay = DelayedTpl(
+        #         mode=dump_mode,
+        #         outpath=outpath,
+        #         render_vars=gather_info.vars,
+        #         delayed_vars=gather_info.delay,
+        #     )
+        #     self.delay_tpls.append(delay)
+        if not is_valid_string(dump_mode):
+            Env.writefile(outpath, template.render(render_vars))
+        elif dump_mode == "binary":
+            Env.cpbin(cfg_env.app_path("kc", "binary", src_path), outpath)
+        else:
+            res.dump_mode(dump_mode, req, render_vars, outpath)
+
     # 渲染库中的全部模板，输出到output_dir下．对于特定的dump_mode,调用dump_mode_func来处理．
-    def render_all(self, store, output_dir, dump_mode_func):
-        cfg_env = store.env
+    def render_all(self, req, res: Project):
+        # 加载模板组中的配置项．
+        try:
+            self.render_template(SETUPTPL_NAME, req, res)
+        except TemplateNotFound:
+            pass
         all_templates = self.list_templates()
         for template_name in all_templates:
+            self.render_template(template_name, req, res)
             # # 加载模板
             # {% set meta_title = "My Page Title" %}
-            template = self.get_template(template_name)
-            outname = template_name
-            dump_mode = None
-            gather_info = self.gather_base(
-                store, self.get_tpl_source(template_name), template_name
-            )
-            src_path = None
-
-            if "meta" in template.module.__dict__:
-                meta = template.module.__dict__["meta"]
-                if isinstance(meta, dict):
-                    if "mode" in meta:  # 有效的mode: page
-                        dump_mode = meta["mode"]
-                    # 如果meta中定义了输出文件名．则采用此名称．
-                    if "fname" in meta:
-                        outname = meta["fname"]
-                    if "src" in meta:
-                        src_path = meta["src"]
-
-            if path.isabs(outname):
-                raise ValueError("给定的路径为全路径！")
-
-            outpath = cfg_env.full_outdir(output_dir, outname)
-            if len(gather_info.delay) > 0:
-                delay = DelayedTpl(
-                    mode=dump_mode,
-                    outpath=outpath,
-                    render_vars=gather_info.vars,
-                    delayed_vars=gather_info.delay,
-                )
-                self.delay_tpls.append(delay)
-            elif not is_valid_string(dump_mode):
-                Env.writefile(outpath, template.render(gather_info.vars))
-            elif dump_mode == "binary":
-                Env.cpbin(cfg_env.app_path("kc", "binary", src_path), outpath)
-            else:
-                if callable(dump_mode_func):
-                    dump_mode_func(dump_mode, store, outpath, gather_info)
-                else:
-                    raise ValueError(f"模板{template_name}中含有不能处理的渲染模式{dump_mode}")

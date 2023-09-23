@@ -1,16 +1,16 @@
 from attrs import define, field
-from entity import entity
-from entity.env import Env
 from util.str import is_valid_string, convert_to_base36
 from util.namer import Namer
 from rich import pretty
 from os import path
 from urllib.parse import urlparse
 
-from .constpl.gotopage import GOTO_PAGE_TPL
-from .constpl.layout import DEF_LAYOUT
-from .blkrender import render_block, has_subpage, render_page
-from .tpl import Tplbase, DelayedTpl
+from ..constpl.gotopage import GOTO_PAGE_TPL
+from ..constpl.layout import DEF_LAYOUT
+from ..blkrender import render_block, has_subpage, render_page
+from ..tplset import Tplset
+from .project import Project
+from ..requirement import Requirement
 
 
 @define(slots=True)
@@ -60,16 +60,23 @@ class GenpageCtx:
 
 # 做为svelte的实现．当前尚未实现客户端知识库加载．
 @define(slots=True)
-class Svelte(entity.Entity):
-    # 页面的loader及模板环境
-    page_tpl: "Tplbase" = field(factory=Tplbase)
-    # 组件的loader及模板环境．
-    comp_tpl: "Tplbase" = field(factory=Tplbase)
+class Svelte(Project):
+    type: str = field(default="Svelte")
 
-    # 组件保存地．
-    compath = field(default="src/components")
-    delay_tpls: "list[DelayedTpl]" = field(factory=list)
-    page_namer: "Namer" = field(factory=Namer)
+    # 组件的loader及模板环境．
+    comp_tplset: "Tplset" = field(factory=Tplset)
+    # 　页面的命名器．
+    page_namer: Namer = field(factory=Namer)
+    # 项目的代码名称．
+    name: str = field(default="client")
+    # 项目的模板路径．
+    tplpath: str = field(default=path.join("kc", "client"))
+
+    def get_imgpath(self, req, filename):
+        return self.target_dir("src", "lib", "images", filename)
+
+    def get_imgvalue(self, fnparts: list, imgInfo):
+        return "{" + "/".join(fnparts) + "}"
 
     def cvt_href(self, href, ctx):
         store = ctx.store
@@ -123,11 +130,11 @@ class Svelte(entity.Entity):
         return ctx.filecnt
 
     def render_tpl(self, store, tpl_source, source_name):
-        gathered_vars = self.page_tpl.gather_base(store, tpl_source, source_name)
+        gathered_vars = self.tplset.gather_base(store, tpl_source, source_name)
         render_vars = gathered_vars.vars
         if len(gathered_vars.delay) > 0:
             raise ValueError(f"在渲染{source_name}时，遭遇延迟变量，需要coroute改写创建过程！")
-        return self.page_tpl.render_src(tpl_source, render_vars)
+        return self.tplset.render_src(tpl_source, render_vars)
 
     def get_pagename(self, store, pagename):
         filename = self.page_namer.name(pagename)
@@ -164,28 +171,24 @@ class Svelte(entity.Entity):
                 if is_valid_string(content):
                     store.env.writefile(path.join(outdir, fname), content)
 
-    def dump_mode(self, dump_mode, store, outpath, gather_info):
+    def dump_mode(self, dump_mode, req, render_vars, outpath):
         if dump_mode == "page":
-            return self.dump_all_page(store, outpath, gather_info.vars)
+            return self.dump_all_page(req.store, outpath, render_vars)
         raise ValueError(f"svelte中未支持渲染模式{dump_mode}")
 
-    def dump(self, store):
-        model = store.models["arch"]
+    def dump(self, req: Requirement):
+        model = req.store.models["arch"]
         anonymous = model.anonymous
         if not anonymous:  # @todo: 未确定默认角色．
             raise ValueError("当前未指定匿名角色．")
         self.page_namer.reserved[model.roles[anonymous].home] = "index.html"
         self.page_namer.suffix = ""
 
-        self.page_tpl.render_all(
-            store,
-            "client",
-            self.dump_mode
-        )
+        return super().dump(req)
 
-    def load(self, env: Env):
-        self.page_tpl.load(env.app_path("kc", "client"))
-        self.comp_tpl.load(env.app_path("kc", "comps"))
+    def load(self, req: Requirement):
+        super().load(req)
+        self.comp_tplset.load(req.store.env.app_path("kc", "comps"))
 
     # @staticmethod
     # def create(type: str,**kwargs) -> "Client":

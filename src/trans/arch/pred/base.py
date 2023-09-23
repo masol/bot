@@ -162,3 +162,42 @@ class PredBase:
         # print("field_val=", field_val)
         sel_api = arch.ensure_edit_api(tablename, fieldname, fields)
         parent_block.ensure("Button", href=sel_api, label="选择")
+
+    @staticmethod
+    def create_approve(ctx, parent_block, arch, page, wf, bh):
+        # inthumod = arch.model("inthumod")
+        tablename = wf.tablename()
+        fieldname = ArchUtil.getbhfieldname(wf, bh)
+        # 获取自身要保存的变量．
+        # field_val = inthumod.getdtdfield(tablename, fieldname)
+        fields = list()
+        # print("field_val=", field_val)
+        sel_api = arch.ensure_edit_api(tablename, fieldname, fields)
+        parent_block.ensure("Button", href=sel_api, label="审核")
+
+
+    @staticmethod
+    def create_get(ctx, parent_block, arch, page, wf, bh):
+        # inthumod = arch.model("inthumod")
+        tablename = wf.tablename()
+        fieldname = ArchUtil.getbhfieldname(wf, bh)
+        # 获取自身要保存的变量．
+        # field_val = inthumod.getdtdfield(tablename, fieldname)
+        fields = list()
+        # print("field_val=", field_val)
+        sel_api = arch.ensure_edit_api(tablename, fieldname, fields)
+        parent_block.ensure("Button", href=sel_api, label="确认")
+
+        
+    @staticmethod
+    def create_put(ctx, parent_block, arch, page, wf, bh):
+        # inthumod = arch.model("inthumod")
+        tablename = wf.tablename()
+        fieldname = ArchUtil.getbhfieldname(wf, bh)
+        # 获取自身要保存的变量．
+        # field_val = inthumod.getdtdfield(tablename, fieldname)
+        fields = list()
+        # print("field_val=", field_val)
+        sel_api = arch.ensure_edit_api(tablename, fieldname, fields)
+        parent_block.ensure("Button", href=sel_api, label="输入")
+

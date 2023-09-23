@@ -8,6 +8,8 @@ from .util import ArchUtil
 from .pred.manage import ManagePred
 from .pred.sel import SelPred
 from .pred.approve import ApprovePred
+from .pred.get import GetPred
+from .pred.put import PutPred
 
 
 class Arch(Model):
@@ -61,6 +63,8 @@ class Arch(Model):
             DataopEnt.SELMD: SelPred.genmd,
             DataopEnt.SELMS: SelPred.genms,
             DataopEnt.APPROVE: ApprovePred.gen,
+            DataopEnt.GET: GetPred.gen,
+            DataopEnt.PUT: PutPred.gen,
         }
         proc = pred_dict.get(bh.pred.act, self.pred_except)
         return proc(self, duty, page)
