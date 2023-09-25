@@ -1,6 +1,6 @@
 from attrs import define, field
-from .svelte import Svelte
-from .fastify import Server
+from .svelte.svelte import Svelte
+from .fastify.fastify import Server
 from ..requirement import Requirement
 
 @define(slots=True)

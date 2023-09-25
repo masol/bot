@@ -6,7 +6,7 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from jinja2.meta import find_undeclared_variables
 from util.str import is_valid_string
 import re
-from PIL import Image
+# from PIL import Image
 import numpy as np
 from os import path
 
@@ -24,16 +24,9 @@ def render_importer(importer):
     return ret
 
 
-# 部分依赖变量需要其它部分，因此一个输出会被延迟．需要使用asyncio.coroutine来简化依赖处理．
 @define(slots=True)
-class DelayedTpl(entity.Entity):
-    outpath: str = field(default="")
-    # 模板对象．
-    template = field(default=None)
-    # 渲染模式，目前只支持page.
-    mode: str = field(default="")
-    render_vas: dict = field(default=None)
-    delayed_vars: dict = field(default=None)
+class FakeModule:
+    __dict__: dict = field(factory=dict)
 
 
 # 保存未使用变量的映射结果．
@@ -123,14 +116,14 @@ class GatheredVars(entity.Entity):
             imgobj.save(filepath)
 
 
-# 维护知识库中的模板．
+# 模板集基类，提供了渲染，获取源码等方法．
 @define(slots=True)
 class Tplset:
     loader = field(default=None)
     env = field(default=None)
 
     # 组件的loader及模板环境．
-    def load(self, basedir):
+    def load(self, req, res, basedir):
         self.loader = FileSystemLoader(basedir)
         self.env = Environment(
             loader=self.loader,
@@ -141,8 +134,13 @@ class Tplset:
         self.env.globals["render_importer"] = render_importer
 
     # 获取特定名称的模板．
-    def get_template(self, name):
-        return self.env.get_template(name)
+    def _get_template(self, name):
+        try:
+            # print("get_template_name=", name)
+            template = self.env.get_template(name)
+        except TemplateNotFound:
+            template = None
+        return template
 
     # 列出全部模板，如果pattern为字符串，则以pattern开头，如果是正则表达式，则匹配之．
     def list_templates(self, pattern=None):
@@ -154,59 +152,78 @@ class Tplset:
         return all_templates
 
     # 获取模板中未声明的变量．
-    def get_undeclared_variables(self, template_source):
+    def _get_undeclared_variables(self, template_source):
         parsed_content = self.env.parse(template_source)
         return find_undeclared_variables(parsed_content)
 
     # 获取模板的源码
-    def get_tpl_source(self, template_name):
+    def _get_tpl_source(self, template_name):
         return self.env.loader.get_source(self.env, template_name)[0]
 
     # 基础收集．返回GatheredVars.extra_gather是一个字典，如果给定，保存了block等额外变量．
-    def gather_base(
-        self, store, template_source, template_name, var_dict=None
-    ) -> GatheredVars:
-        undeclared = self.get_undeclared_variables(template_source)
-        ret: "GatheredVars" = GatheredVars()
-        ret.gather_base(store, undeclared, var_dict)
-        GatheredVars.chk_undeclared(undeclared, template_name)
-        return ret
+    # def gather_base(
+    #     self, store, template_source, template_name, var_dict=None
+    # ) -> GatheredVars:
+    #     undeclared = self._get_undeclared_variables(template_source)
+    #     ret: "GatheredVars" = GatheredVars()
+    #     ret.gather_base(store, undeclared, var_dict)
+    #     GatheredVars.chk_undeclared(undeclared, template_name)
+    #     return ret
 
     # 获取模板，其路径为features路径的一个子集．返回最长匹配．
-    def match_feature(self, features: "list[str]"):
-        # 列出所有可能的feature名．
-        all_templates = self.env.list_templates()
-        possible = set()
-        for t in all_templates:
-            if t in features:
-                possible.add(t)
+    # def match_feature(self, features: "list[str]"):
+    #     # 列出所有可能的feature名．
+    #     all_templates = self.env.list_templates()
+    #     possible = set()
+    #     for t in all_templates:
+    #         if t in features:
+    #             possible.add(t)
 
-        if len(possible) == 0:
-            return None
-        return max(possible, key=len)
+    #     if len(possible) == 0:
+    #         return None
+    #     return max(possible, key=len)
 
-    def render_src(self, template_source, render_vars):
-        template = self.env.from_string(template_source)
+    # def render_src(self, template_source, render_vars):
+    #     template = self.env.from_string(template_source)
+    #     return template.render(render_vars)
+
+    def render(self, template_name, req, res: Project, base_vars=None) -> str:
+        template = self._get_template(template_name)
+        if not template:
+            return ""
+        undeclared = self._get_undeclared_variables(self._get_tpl_source(template_name))
+        render_vars = res.get_vars(req, undeclared, template_name, base_vars)
         return template.render(render_vars)
 
-    def render_template(self, template_name, req, res: Project):
+    def module(self, template_name) -> dict:
+        template = self._get_template(template_name)
+        if not template:
+            print("not found template:", template_name)
+            return FakeModule()
+            # return {"__dict__": {}}
+        return template.module
+
+    def dump(self, template_name, req, res: Project, base_vars=None):
         cfg_env = req.store.env
-        template = self.get_template(template_name)
+        # template = self._get_template(template_name)
+        module = self.module(template_name)
         outname = template_name
-        dump_mode = None
-        undeclared = self.get_undeclared_variables(self.get_tpl_source(template_name))
-        render_vars = res.get_vars(req, undeclared, template_name)
+        mode_name = None
+        # undeclared = self._get_undeclared_variables(
+        #     self._get_tpl_source(template_name), base_vars
+        # )
+        # render_vars = res.get_vars(req, undeclared, template_name, base_vars)
         # gather_info = self.gather_base(
         #     req.store, self.get_tpl_source(template_name), template_name
         # )
         src_path = None
         norender = False
 
-        if "meta" in template.module.__dict__:
-            meta = template.module.__dict__["meta"]
+        if "meta" in module.__dict__:
+            meta = module.__dict__["meta"]
             if isinstance(meta, dict):
                 if "mode" in meta:  # 有效的mode: page
-                    dump_mode = meta["mode"]
+                    mode_name = meta["mode"]
                 # 如果meta中定义了输出文件名．则采用此名称．
                 if "fname" in meta:
                     outname = meta["fname"]
@@ -222,31 +239,22 @@ class Tplset:
             raise ValueError(f"模板中给定的路径{outname}为全路径！")
 
         outpath = res.target_dir(outname)
-        # gather_info.dump_imgs(res.target_dir("src", "lib", "images"))
-        # if len(gather_info.delay) > 0:
-        #     delay = DelayedTpl(
-        #         mode=dump_mode,
-        #         outpath=outpath,
-        #         render_vars=gather_info.vars,
-        #         delayed_vars=gather_info.delay,
-        #     )
-        #     self.delay_tpls.append(delay)
-        if not is_valid_string(dump_mode):
-            Env.writefile(outpath, template.render(render_vars))
-        elif dump_mode == "binary":
+        if not is_valid_string(mode_name):
+            Env.writefile(outpath, self.render(template_name, req, res, base_vars))
+        elif mode_name == "binary":
             Env.cpbin(cfg_env.app_path("kc", "binary", src_path), outpath)
         else:
-            res.dump_mode(dump_mode, req, render_vars, outpath)
+            res.dump_mode(mode_name, req, outpath)
 
     # 渲染库中的全部模板，输出到output_dir下．对于特定的dump_mode,调用dump_mode_func来处理．
-    def render_all(self, req, res: Project):
+    def dump_all(self, req, res: Project):
         # 加载模板组中的配置项．
         try:
-            self.render_template(SETUPTPL_NAME, req, res)
+            self.dump(SETUPTPL_NAME, req, res)
         except TemplateNotFound:
             pass
         all_templates = self.list_templates()
         for template_name in all_templates:
-            self.render_template(template_name, req, res)
+            self.dump(template_name, req, res)
             # # 加载模板
             # {% set meta_title = "My Page Title" %}

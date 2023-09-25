@@ -1,4 +1,3 @@
-SVELTE_PAGE_TPL = """
 <script>
     {% if pageinfo %}
     {{render_importer(pageinfo.importer)}}
@@ -8,4 +7,3 @@ SVELTE_PAGE_TPL = """
 {% for block in blocks %}
     {{block.code}}
 {% endfor %}
-  """

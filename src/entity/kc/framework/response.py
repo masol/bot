@@ -6,6 +6,8 @@ from datetime import datetime
 from PIL import Image
 import numpy as np
 
+# from .dumper import Dumper
+
 transparent_formats = ["png", "webp"]
 image_formats = ["jpg", "jpeg"] + transparent_formats
 IMG_PREFIX = "img_"
@@ -27,6 +29,9 @@ class ImageInfo:
 @define(slots=True)
 class Response(Entity):
     type: str = field(default="Response")
+
+    # # 服务于mode(例如页面),跟踪一个流程行为的创建上下文．
+    # genbhctx: Dumper = field(default=None)
 
     # 项目的输出根目录．
     target: str = field(default=None)
@@ -94,15 +99,19 @@ class Response(Entity):
     # 获取变量的值．这里才会真正触发计算变量．使用HORN SAT求解．
     # 返回确定之后的变量．如果有变量无法确定，抛出异常．
     def get_vars(
-        self, req: "Requirement", undeclared: dict, template_name: str
+        self, req: "Requirement", undeclared: dict, template_name: str, base_vars=None
     ) -> dict:
         cfg_env = req.store.env
         const_dict = {"compath": "src/components"}
         const_vars = set(const_dict.keys())
         env_vars = {"subdir"}
+        if not isinstance(base_vars, dict):
+            base_vars = {}
         ret_vars = dict()
         for key in undeclared:
-            if key in const_vars:
+            if key in base_vars:
+                ret_vars[key] = base_vars[key]
+            elif key in const_vars:
                 ret_vars[key] = const_dict[key]
             elif key in env_vars:
                 ret_vars[key] = cfg_env.getattr(key)

@@ -1,7 +1,7 @@
 from attrs import define, field
 
-from ..requirement import Requirement
-from .project import Project
+from ...requirement import Requirement
+from ..project import Project
 
 from os import path
 
@@ -18,7 +18,7 @@ class Server(Project):
 
     # codeblk_tpl: "Tplbase" = field(factory=Tplbase)
 
-    def dump_mode(self, dump_mode, store, outpath, gather_info):
+    def dump_mode(self, dump_mode, store, outpath):
         # if dump_mode == "page":
         #     return self.dump_all_page(store, outpath, gather_info.vars)
         raise ValueError(f"fastify中未支持渲染模式{dump_mode}")

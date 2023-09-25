@@ -11,3 +11,7 @@ class Requirement:
     def __attrs_post_init__(self):
         print("enter post_init")
         pass
+
+    def get_pages(self):
+        model = self.store.models["arch"]
+        return model.pages
