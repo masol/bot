@@ -37,10 +37,13 @@ class Tplcomp(Tplset):
                 item = WeightItem(item=dbitem)
                 item.weight = len(intersection(dbitem.features, features))
                 weight_items.append(item)
+        # print("found %d items" % len(weight_items))
+        # print("features: %s" % features)             
         count = len(weight_items)
         if count == 1:
             return weight_items[0].item.tpl_name
         elif count == 0:
             return None
         weight_items.sort(reverse=True, key=weight_sorter)
+        # print("sorted weight_items: %s" % weight_items)
         return weight_items[0].item.tpl_name

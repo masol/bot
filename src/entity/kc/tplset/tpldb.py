@@ -42,12 +42,18 @@ class Tpldb:
         suffix = ""
         path = ""
         name = None
+        hints = None
         if len(nameparts) > 1:
             usage = nameparts[0]
             nameparts = nameparts[1:]
         if len(nameparts) > 1:
+            # 多级时，最后一级为hints的值．
+            hints = nameparts.pop()
+            extinfo = os.path.splitext(hints)
+            hints = extinfo[0]
             name = nameparts.pop()
-            path = ".".join(nameparts)
+            if len(nameparts) > 0:
+                path = ".".join(nameparts)
             # nameparts = nameparts[:-1]
         else:
             name = nameparts[0]
@@ -67,6 +73,12 @@ class Tpldb:
             features = tpl_obj.module.__dict__["features"]
             if not isinstance(types, dict):
                 features = {}
+        if "name" in tpl_obj.module.__dict__:
+            name = tpl_obj.module.__dict__["name"]
+
+        # hints被定义，并且features中没有hints时，添加hints
+        if (hints is not None) and ("hints" not in features):
+            features["hints"] = hints
 
         self.usage[usage].append(
             Tplitem(
