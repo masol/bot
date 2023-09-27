@@ -1,13 +1,11 @@
 from attrs import define, field
-from entity import entity
+# from entity import entity
 from entity.env import Env
 from os import path
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 from jinja2.meta import find_undeclared_variables
 from util.str import is_valid_string
 import re
-# from PIL import Image
-import numpy as np
 from os import path
 
 from ..framework.project import Project
@@ -15,105 +13,96 @@ from ..framework.project import Project
 SETUPTPL_NAME = "config.tpl"
 
 
-# 为了方便，添加在jinjia2中的一些函数．
-# 1. 导出importer:
-def render_importer(importer):
-    ret = ""
-    for lib, eles in importer.items():
-        ret += f"import {{ {','.join(eles)} }} from '{lib}';\n"
-    return ret
-
-
 @define(slots=True)
 class FakeModule:
     __dict__: dict = field(factory=dict)
 
 
-# 保存未使用变量的映射结果．
-@define(slots=True)
-class GatheredVars(entity.Entity):
-    vars: "dict" = field(factory=dict)
-    # 延迟变量，需要给出依赖信息．
-    delay: "dict" = field(factory=dict)
-    # 需要创建的图片文件．
-    images: "list" = field(factory=list)
+# # 保存未使用变量的映射结果．
+# @define(slots=True)
+# class GatheredVars(entity.Entity):
+#     vars: "dict" = field(factory=dict)
+#     # 延迟变量，需要给出依赖信息．
+#     delay: "dict" = field(factory=dict)
+#     # 需要创建的图片文件．
+#     images: "list" = field(factory=list)
 
-    # 基础收集．vars中的已确定的变量会被移除．
-    def gather_base(self, store, undeclared, var_dict=None):
-        const_dict = {"compath": "src/components"}
-        const_vars = set(const_dict.keys())
-        env_vars = {"subdir"}
-        to_del = []
-        for key in undeclared:
-            if key in const_vars:
-                self.vars[key] = const_dict[key]
-                to_del.append(key)
-            elif key in env_vars:
-                self.vars[key] = store.env.getattr(key)
-                to_del.append(key)
-            elif key == "current_year":
-                self.vars[key] = datetime.now().year
-                to_del.append(key)
-            elif key == "project_name":  # @TODO: 在输入文件中定义option.
-                self.vars[key] = "client"
-                to_del.append(key)
-            elif isinstance(var_dict, dict) and key in var_dict:  # 从给定的字典中获取．
-                self.vars[key] = var_dict[key]
-                to_del.append(key)
-            elif key.startswith("img_"):
-                # tk is temp key.
-                tokens = key[len("img_") :].split("__")
-                w = 256
-                h = 256
-                suffix = "jpg"
-                transparent = False
-                filename = ""
-                if len(tokens) > 1:  # 定义了图片尺寸．
-                    size = tokens[0].split("_")
-                    w = int(size[0])
-                    if len(size) > 1:
-                        h = int(size[1])
-                    else:
-                        h = w
-                fnparts = tokens[-1].split("_")
-                if fnparts[-1].lower() in image_formats:
-                    suffix = fnparts[-1].lower()
-                    transparent = suffix in transparent_formats
-                    fnparts.pop()
-                filename = "/".join(fnparts) + "." + suffix
-                img_info = ImageInfo(
-                    filename=filename, width=w, height=h, transparent=transparent
-                )
-                self.images.append(img_info)
-                self.vars[key] = "{" + "/".join(fnparts) + "}"
-                to_del.append(key)
-                # print("img_info=", img_info)
-        for key in to_del:
-            undeclared.remove(key)
+#     # 基础收集．vars中的已确定的变量会被移除．
+#     def gather_base(self, store, undeclared, var_dict=None):
+#         const_dict = {"compath": "src/components"}
+#         const_vars = set(const_dict.keys())
+#         env_vars = {"subdir"}
+#         to_del = []
+#         for key in undeclared:
+#             if key in const_vars:
+#                 self.vars[key] = const_dict[key]
+#                 to_del.append(key)
+#             elif key in env_vars:
+#                 self.vars[key] = store.env.getattr(key)
+#                 to_del.append(key)
+#             elif key == "current_year":
+#                 self.vars[key] = datetime.now().year
+#                 to_del.append(key)
+#             elif key == "project_name":  # @TODO: 在输入文件中定义option.
+#                 self.vars[key] = "client"
+#                 to_del.append(key)
+#             elif isinstance(var_dict, dict) and key in var_dict:  # 从给定的字典中获取．
+#                 self.vars[key] = var_dict[key]
+#                 to_del.append(key)
+#             elif key.startswith("img_"):
+#                 # tk is temp key.
+#                 tokens = key[len("img_") :].split("__")
+#                 w = 256
+#                 h = 256
+#                 suffix = "jpg"
+#                 transparent = False
+#                 filename = ""
+#                 if len(tokens) > 1:  # 定义了图片尺寸．
+#                     size = tokens[0].split("_")
+#                     w = int(size[0])
+#                     if len(size) > 1:
+#                         h = int(size[1])
+#                     else:
+#                         h = w
+#                 fnparts = tokens[-1].split("_")
+#                 if fnparts[-1].lower() in image_formats:
+#                     suffix = fnparts[-1].lower()
+#                     transparent = suffix in transparent_formats
+#                     fnparts.pop()
+#                 filename = "/".join(fnparts) + "." + suffix
+#                 img_info = ImageInfo(
+#                     filename=filename, width=w, height=h, transparent=transparent
+#                 )
+#                 self.images.append(img_info)
+#                 self.vars[key] = "{" + "/".join(fnparts) + "}"
+#                 to_del.append(key)
+#                 # print("img_info=", img_info)
+#         for key in to_del:
+#             undeclared.remove(key)
 
-    def chk_undeclared(undeclared, template_name):
-        if len(undeclared) > 0:
-            raise ValueError(f"无法识别模板{template_name}中定义的变量:{list(undeclared)}")
+#     def chk_undeclared(undeclared, template_name):
+#         if len(undeclared) > 0:
+#             raise ValueError(f"无法识别模板{template_name}中定义的变量:{list(undeclared)}")
 
-    def dump_imgs(self, output_dir):
-        if len(self.images) > 0:
-            print("dump_imgs output_dir=", output_dir)
-        for img in self.images:
-            print(img)
-            # 生成随机颜色的像素
-            pixel_data = np.random.randint(
-                0,
-                255,
-                (img.width, img.height, 4 if img.transparent else 3),
-                dtype=np.uint8,
-            )
-            # 创建一个新的图像
-            imgobj = Image.fromarray(pixel_data)
-            # 保存为PNG格式的图片
-            filepath = path.join(output_dir, img.filename)
-            directory = path.dirname(filepath)
-            Env.mkdirs(directory)
-            imgobj.save(filepath)
+#     def dump_imgs(self, output_dir):
+#         if len(self.images) > 0:
+#             print("dump_imgs output_dir=", output_dir)
+#         for img in self.images:
+#             print(img)
+#             # 生成随机颜色的像素
+#             pixel_data = np.random.randint(
+#                 0,
+#                 255,
+#                 (img.width, img.height, 4 if img.transparent else 3),
+#                 dtype=np.uint8,
+#             )
+#             # 创建一个新的图像
+#             imgobj = Image.fromarray(pixel_data)
+#             # 保存为PNG格式的图片
+#             filepath = path.join(output_dir, img.filename)
+#             directory = path.dirname(filepath)
+#             Env.mkdirs(directory)
+#             imgobj.save(filepath)
 
 
 # 模板集基类，提供了渲染，获取源码等方法．
@@ -131,7 +120,8 @@ class Tplset:
             comment_start_string="{${",
             comment_end_string="=}$}",
         )
-        self.env.globals["render_importer"] = render_importer
+        res.render_global(req, self.env.globals)
+        # self.env.globals["render_importer"] = render_importer
 
     # 获取特定名称的模板．
     def _get_template(self, name):
@@ -207,6 +197,8 @@ class Tplset:
         cfg_env = req.store.env
         # template = self._get_template(template_name)
         module = self.module(template_name)
+        if isinstance(module, FakeModule):
+            return
         outname = template_name
         mode_name = None
         # undeclared = self._get_undeclared_variables(

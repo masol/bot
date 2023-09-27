@@ -22,6 +22,23 @@ module.exports.setup = async function (fastify, ojs) {
       Active: 1
     }
 
+    // 根据name的值，来判定其所属列的名称．
+    static async colName (fastify, username) {
+      const { s, soa } = fastify
+      const env = await soa.get('env')
+      let colName = ''
+      if (s.v.isIdentityCard(username, env.locale)) {
+        colName = 'idcard'
+      } else if (s.v.isEmail(username)) {
+        colName = 'email'
+      } else if (s.v.isMobilePhone(username, env.locale)) {
+        colName = 'mobile'
+      } else {
+        colName = 'accountName'
+      }
+      return colName
+    }
+
     // 处理下一动作。
     async $procAction () {
       // 如果未指定id,则返回错误。

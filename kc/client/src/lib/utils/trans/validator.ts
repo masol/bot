@@ -40,6 +40,7 @@ const ajv = new Ajv({
   removeAdditional: 'all',
   useDefaults: true,
   coerceTypes: 'array',
+  $data: true,
   allErrors: true
 })
 addFormats(ajv)

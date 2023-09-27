@@ -1,0 +1,25 @@
+{
+    "type": "object",
+    "properties": {
+      "username": {
+        "type": "string",
+        "minLength": 3,
+        "errorMessage": "非法用户名!"
+      },
+      "password": {
+        "type": "string",
+        "minLength": 3
+      },
+      "confirmpwd": {
+        "type": "string",
+        "const": {
+            "$data": "1/password"
+        }
+      }
+    },
+    "required": [
+      "username",
+      "password",
+      "confirmpwd"
+    ]
+  }

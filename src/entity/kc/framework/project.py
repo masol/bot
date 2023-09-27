@@ -21,6 +21,10 @@ class Project(Response):
         #     return self.dump_all_page(store, outpath, gather_info.vars)
         raise ValueError("进入基类纯虚函数dump_mode..")
 
+    # 设置渲染内可调用的全局函数．
+    def render_global(self, req: Requirement, globals: dict):
+        pass
+
     # self is response.
     def dump(self, req: Requirement):
         self.tplset.dump_all(req, self)

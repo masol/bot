@@ -1,7 +1,3 @@
-{% set meta = {
-    'fname': 'src/routes/+layout.svelte',
-} %}
-
 <script>
 	// @ts-ignore
 	import Config from 'virtual:config';

@@ -13,7 +13,7 @@ const crypto = require('crypto')
 
 module.exports = async function (fastify, passport, conf) {
   // console.log('passport.module.Strategy=', passport.module.Strategy)
-  const { shell, _, config } = fastify
+  const { shell, _, config, soa } = fastify
   const cfgutil = config.util
   const defName = cfgutil.dget('passport.strategies.local.defaultName', '未命名')
   // 允许用户名密码登录的用户名正则。默认为'.*',全部允许。设置为false禁止用户名密码登录。
@@ -21,22 +21,15 @@ module.exports = async function (fastify, passport, conf) {
   const LocalStrategy = await shell.import('passport-local')
   // console.log('LocalStrategy=', LocalStrategy)
   passport.use('local', new LocalStrategy.Strategy(async function (username, password, done) {
-    const { s, soa } = fastify
-    const env = await soa.get('env')
-    let colName = ''
-    if (s.v.isIdentityCard(username, env.locale)) {
-      colName = 'idcard'
-    } else if (s.v.isEmail(username)) {
-      colName = 'email'
-    } else if (s.v.isMobilePhone(username, env.locale)) {
-      colName = 'mobile'
-    } else {
-      colName = 'accountName'
-    }
+    const ojs = await soa.get('objection')
+    const Users = ojs.Model.store.users
+    const colName = await Users.colName(fastify, username)
 
     let row = false
-    if (colName && pwdRE) {
-      if (pwdRE === '.*' || new RegExp(pwdRE).text(username)) {
+    // if (colName && pwdRE) {
+    if (colName) {
+      // if (pwdRE === '.*' || new RegExp(pwdRE).text(username)) {
+      if (!pwdRE || (new RegExp(pwdRE)).test(password)) {
         const ojs = await soa.get('objection')
         const Users = ojs.Model.store.users
         const user = await Users.query()

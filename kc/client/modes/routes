@@ -1,0 +1,4 @@
+{% set meta = {
+    'mode': 'page',
+    'fname': 'src/routes',
+} %}

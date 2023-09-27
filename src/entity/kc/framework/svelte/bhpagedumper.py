@@ -59,9 +59,30 @@ class BHpgDumper(Dumper):
                     curpage = self.curpage()
                     for lib, eles in meta["import"].items():
                         if curpage.importer.get(lib) is None:
-                            curpage.importer[lib] = set(eles)
-                        else:
-                            curpage.importer[lib].update(eles)
+                            curpage.importer[lib] = eles
+                        elif isinstance(curpage.importer[lib], list):
+                            if isinstance(eles, list):
+                                curpage.importer[lib].extend(eles)
+                            elif isinstance(eles, str):
+                                curpage.importer[lib].append(eles)
+                            elif isinstance(eles, dict):
+                                dict1 = {}
+                                for old in curpage.importer[lib]:
+                                    dict1[old] = old
+                                curpage.importer[lib] = {**old, **eles}
+                        elif isinstance(curpage.importer[lib], dict):
+                            if isinstance(eles, dict):
+                                curpage.importer[lib] = {
+                                    **curpage.importer[lib],
+                                    **eles,
+                                }
+                            elif isinstance(eles, list):
+                                for ele in eles:
+                                    curpage.importer[lib][ele] = ele
+                            elif isinstance(eles, str):
+                                curpage.importer[lib][eles] = eles
+                        elif isinstance(curpage.importer[lib], str):
+                            raise ValueError("不应该出现的情况:old importer为str")
 
     def render_block(self, block) -> bool:
         # 从ctx获取模板(comp_tpl)．

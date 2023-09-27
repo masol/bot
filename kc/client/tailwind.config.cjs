@@ -7,7 +7,7 @@ module.exports = {
   relative: true,
   content: [
     "./src/**/*.{html,js,svelte,ts}",
-    './node_modules/tw-elements/dist/js/**/*.js',
+    './node_modules/tw-elements/dist/js/**/*.{html,js,svelte,ts}',
     "./node_modules/flowbite-svelte/**/*.{html,js,svelte,ts}"
   ],
   // enabled: "production",

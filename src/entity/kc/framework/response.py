@@ -1,10 +1,12 @@
+from PIL import Image
+# from matplotlib import pyplot as plt, image
+import numpy as np
+
 from attrs import define, field
 from entity.entity import Entity
 from entity.env import Env
 from os import path
 from datetime import datetime
-from PIL import Image
-import numpy as np
 
 # from .dumper import Dumper
 
@@ -59,6 +61,21 @@ class Response(Entity):
         if not path.exists(filepath):
             directory = path.dirname(filepath)
             Env.mkdirs(directory)
+            # if img_info.transparent:
+            #     image_data = np.random.rand(img_info.width, img_info.height, 4)
+            #     # 设置透明通道
+            #     image_data[:, :, 3] = 0.5
+            #     # plt.imshow(image_data)
+            #     # plt.axis('off')  # 不显示坐标轴
+            #     # plt.savefig(filepath, bbox_inches='tight', pad_inches=0)
+            #     image.imsave(filepath,image_data,bbox_inches='tight', pad_inches=0)
+            # else:
+            #     image_data = np.random.rand(img_info.width, img_info.height)
+            #     # 使用 matplotlib 显示图片
+            #     # plt.imshow(image_data, interpolation='nearest')
+            #     # plt.colorbar()
+            #     # plt.savefig(filepath)
+            #     image.imsave(filepath,image_data)
             pixel_data = np.random.randint(
                 0,
                 255,

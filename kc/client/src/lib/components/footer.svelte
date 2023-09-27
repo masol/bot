@@ -1,7 +1,3 @@
-{% set meta = {
-    'fname': 'src/lib/components/footer.svelte',
-} %}
-
 <script>
 	import { SpeedDial, SpeedDialButton } from 'flowbite-svelte';
 </script>

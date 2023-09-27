@@ -13,6 +13,23 @@ from ...requirement import Requirement
 from .dumputil import DumpUtil
 
 
+# 为了方便，为svelte,添加在jinjia2中的一些函数．
+# 1. 导出importer:
+def render_importer(importer):
+    ret = ""
+    for lib, eles in importer.items():
+        if isinstance(eles, str):
+            ret += f"import { eles } from '{lib}';\n"
+        elif isinstance(eles,list):
+            eles = list(set(eles))
+            ret += f"import {{ {','.join(eles)} }} from '{lib}';\n"
+        elif isinstance(eles,dict):
+            importstr = []
+            for name, alias in eles.items():
+                importstr.append(f"{name} as {alias}")
+            ret += f"import {{ {','.join(importstr) } }} from '{lib}';\n"
+    return ret
+
 # 做为svelte的实现．当前尚未实现客户端知识库加载．
 @define(slots=True)
 class Svelte(Project):
@@ -32,6 +49,9 @@ class Svelte(Project):
 
     def get_imgvalue(self, fnparts: list, imgInfo):
         return "{" + "/".join(fnparts) + "}"
+
+    def render_global(self, req: Requirement, globals: dict):
+        globals['render_importer'] = render_importer
 
     def cvt_href(self, href, dumper):
         store = dumper.req.store
@@ -122,10 +142,8 @@ class Svelte(Project):
                 dirname = store.env.subdir
 
             outdir = path.join(basepath, dirname)
-            print("outdir=",outdir)
-            dumper = BHpgDumper(
-                page=page, dirname=dirname, req=req, res=self
-            )
+            print("outdir=", outdir)
+            dumper = BHpgDumper(page=page, dirname=dirname, req=req, res=self)
             # pagecnt = self.gen_page(req, page, render_vars, dirname)
             dumper.dump()
 

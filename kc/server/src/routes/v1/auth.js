@@ -1,9 +1,13 @@
 
+const crypto = require('crypto')
+
 module.exports = async function (fastify, opts) {
   const { soa, error, config, util, _ } = fastify
   const cfgutil = config.util
   const passport = await soa.get('passport')
   const auditCfg = cfgutil.dget('passport.audit', {})
+  // 允许用户名密码登录的用户名正则。默认为'.*',全部允许。设置为false禁止用户名密码登录。
+  const pwdRE = cfgutil.dget('passport.strategies.local.pwdRE', '.*')
 
   // const fsmInst = await soa.get('fsm')
 
@@ -150,4 +154,60 @@ module.exports = async function (fastify, opts) {
       }
     }
   )
+
+  fastify.post('/auth/reg',
+    async function (request, reply) {
+      // console.log('before handler', request.body)
+      if (request.isAuthenticated()) {
+        throw new error.PreconditionRequiredError('Already logined')
+      }
+      const username = request.body.username
+      const origpwd = request.body.password
+
+      if (pwdRE && !(new RegExp(pwdRE)).test(origpwd)) {
+        throw new error.PreconditionRequiredError('password not allowed')
+      }
+
+      const password = crypto.createHash('md5').update(origpwd).digest('hex')
+      const ojs = await soa.get('objection')
+      const Users = ojs.Model.store.users
+      const colName = await Users.colName(fastify, username)
+      const user = await Users.query()
+        .select('*') // 'id', 'accountName', 'nickName', 'commonName', 'email', 'mobile', 'name', 'idcard', 'password', 'avatar', 'role', 'group', 'active', 'ota', 'otaExpire')
+        .where(colName, username)
+        .limit(2)
+      if (user.length > 0) {
+        throw new error.PreconditionRequiredError(username + ' Already exists')
+      }
+      // 默认注册直接激活．不block.
+      const newUser = {
+        [colName]: username,
+        password,
+        active: true
+      }
+      await Users.query().insert(newUser)
+      // 开始自动登录
+      const Handler = await passport.authenticate('local')
+      await Handler(request, reply)
+
+      if (!auditCfg.disabled) {
+        const Audit = ojs.Model.store.audit
+        const ipfs = _.drop(util.forwarded(request))
+        // 添加审计信息,不保存密码原文．
+        const auditJSON = {
+          action: 'reg',
+          suc: false,
+          username: request.body.username,
+          ip: request.ip,
+          ipfs
+        }
+        // 无需等待其处理完毕．不影响当前request/response.
+        Audit.query().insert(auditJSON)
+      }
+      if (request.isAuthenticated()) {
+        const ret = _.clone(request.user)
+        return { data: ret }
+      }
+    }
+  )  
 }

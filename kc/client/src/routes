@@ -1,3 +1,0 @@
-{% set meta = {
-    'mode': 'page'
-} %}
