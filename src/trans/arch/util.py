@@ -154,7 +154,6 @@ class ArchUtil:
             ctx.same_vistor = prebh.subj.name = bh.subj.name
         # else:
         #     ctx.same_vistor = False
-
         return ctx
 
     # 返回指定的流程制定动作序列(0基)的后续批准动作对象,如果没有，返回None.

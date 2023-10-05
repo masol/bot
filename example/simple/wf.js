@@ -52,6 +52,18 @@ $wfs.上架 = {
   ],
 };
 
+
+$wfs.用户管理 = {
+  behaves: [
+    {
+      subj: "admin",
+      pred: "管理",
+      obj: "用户"
+    }
+  ],
+};
+
+
 $dtds.测试 = {
   fields: {
     a: "int",

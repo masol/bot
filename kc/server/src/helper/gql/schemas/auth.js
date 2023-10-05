@@ -14,17 +14,12 @@ function setup (fastify) {
   type Query {
     me: User
   }
-  enum Role {
-    USER
-    ADMIN
-  }
-  enum Group {
-    USER
-  }
+  scalar Role
+  scalar Group
   type User implements Node {
     id: ID
     role: [Role!]
-    group: [Group!]
+    group: [Group]
     name: String
     expires: String
     avatar: String

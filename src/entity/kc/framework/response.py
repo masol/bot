@@ -1,4 +1,5 @@
 from PIL import Image
+
 # from matplotlib import pyplot as plt, image
 import numpy as np
 
@@ -47,6 +48,11 @@ class Response(Entity):
             return datetime.now().year
         elif varname == "project_name":  # @TODO: 在输入文件中定义option.这里使用当前的项目名称．
             return self.name
+        elif varname.startswith("req_"):
+            method_name = varname[len("req_") :]
+            method = getattr(req, method_name)
+            # print("method()=", method())
+            return method()
 
     def get_imgpath(self, req, filename):
         raise ValueError("未实现图片路径获取．")

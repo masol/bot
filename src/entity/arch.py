@@ -335,6 +335,8 @@ class Role(Entity):
     home: str = field(default="")
     # value: 跳转的目标页面名称．
     nav: "set[str]" = field(factory=set, metadata={"childtype": str})
+    # 角色对赢的id数字.
+    id: int = field(default=-1)
 
 
 # 资源信息
@@ -347,12 +349,13 @@ class Res(Entity):
 class Arch(Entity):
     type: str = field(default="JobDuty")
     pages: "dict[str, Page]" = field(factory=dict, metadata={"childtype": Page})
-    # api的名称为"页面名_act",act为get,或由谓语衍生的多个动词,如upd
+    # api的名称为"页面名_act",act为get,或由谓语衍生的多个动词,如upd.
     apis: "dict[str, Api]" = field(factory=dict, metadata={"childtype": Api})
     # 角色信息．当前版本只支持"我的"这样一种导航方式,需要知识库来细化更多导航(例如条目多时的自动二级分类)
     roles: "dict[str, Role]" = field(factory=dict, metadata={"childtype": Role})
     # 资源信息．系统中各个页面需要处理的资源．
     reses: "dict[str, Res]" = field(factory=dict, metadata={"childtype": Res})
+    # 数据库的导出，要根据apis中的需求，来删除未使用的字段．
     database: "dict[str, Database]" = field(
         factory=dict, metadata={"childtype": Database}
     )

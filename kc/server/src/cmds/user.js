@@ -55,7 +55,8 @@ module.exports.run = async function (fastify, opts = {}) {
     result = await Users.query().insert({
       accountName: 'admin',
       password: crypto.createHash('md5').update(passwd).digest('hex'),
-      active: true
+      active: true,
+      role: [0]
     })
   }
   log.info(`用户admin创建完毕，密码文件:${pwdFile}`)

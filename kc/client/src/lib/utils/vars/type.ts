@@ -131,7 +131,7 @@ export type syncOption = {
   noValid?: boolean //mutation时,是否对输入变量做验证.
   onFilter?: filterHandle | boolean //如果是指定了上传的变量路径.并指定了过滤器,则使用onFilter来过滤成员.
   onErr?: syncHandle //如果设置了错误处理,则调用之.否则如果未指定tgtPath,则设置全局error.否则设置tgtPath的errmsg meta.
-  onVal?: syncHandle //如果设置了onVal,不再执行默认对tgtPath的data数据更新,而是执行这里的函数.
+  onVal?: syncHandle //如果设置了onVal,除非明确返回true,否则不再执行默认对tgtPath的data数据更新,而是执行这里的函数.
 }
 
 export interface Livable {

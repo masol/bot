@@ -30,5 +30,5 @@ class Dumper(Entity):
         self.gen()
         for fname, content in self.filecnt.items():
             if is_valid_string(content):
-                print("fname=", self.full_outpath(fname))
+                print("Dumper.dump fname=", self.full_outpath(fname))
                 self.req.store.env.writefile(self.full_outpath(fname), content)

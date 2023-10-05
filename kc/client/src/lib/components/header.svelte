@@ -27,8 +27,32 @@
   }
 }`;
 
+	let userNavs = []
 	const userVarCtrl = new VarCtrl({
-		syncTpl: meQpl
+		syncTpl: meQpl,
+		onVal: (data, that) => {
+			console.log('onVal userInfo');
+			console.log('onVal 登录成功数据为:', data);
+			if(data.me.id) { //如果用户已登录．重置导航．无需清除，用户无效时不显示．
+				userNavs.length = 0 // 清空数组．
+				if(Array.isArray(data.me.role)){
+					for(const r of data.me.role){
+						switch(r) {
+							{% for role in req_roles %}
+								case {{ role.id }} : // {{ role.name }}
+								  {% for link in role.links %}
+							userNavs.push({ href: '{{link.href}}', text: '{{link.name}}' })
+								  {% endfor %}
+  						    break
+							{% endfor %}
+							default:
+								console.log("未识别的角色代号:",r)
+						}
+					}
+				}
+			}
+			return true
+		}
 	});
 	const userInfo = userVarCtrl.var;
 
@@ -61,7 +85,8 @@
 
 	const handleLougout = logoutVarCtrl.getSubmit();
 
-
+	let activeClass = 'text-white bg-orange-400 md:bg-transparent md:bg-orange-400 md:dark:text-white dark:bg-green-600 md:dark:bg-transparent';
+	let nonActiveClass = 'text-gray-700 hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-green-700 dark:text-gray-400 md:dark:hover:text-white dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent';
 	$: activeUrl = $page.url.pathname;
 
 </script>
@@ -91,7 +116,7 @@
 		{/if}
 		<NavHamburger on:click={toggle} class1="w-full md:flex md:w-auto md:order-1" />
 	</div>
-	<NavUl {activeUrl} {hidden}>
+	<NavUl {activeUrl} {hidden}  {activeClass} {nonActiveClass}>
 		{#if $userInfo.isPending()}
 			<NavLi><Spinner size={4} /></NavLi>
 		{:else if $userInfo.isResolved() && $userInfo.getMeta('', 'errmsg')}
@@ -125,8 +150,9 @@
 			{/if}
 			</NavLi>
 		{:else if $userInfo.isResolved() && $userInfo.getData('me.id')}
-			<NavLi href="/{{subdir}}" active={true}>home</NavLi>
-			<NavLi href="/{{subdir}}">我的</NavLi>
+			{#each userNavs as nav, index}
+			    <NavLi href="{nav.href}">{nav.text}</NavLi>
+			{/each}
 		{:else if $userInfo.isResolved() && !$userInfo.data.me.id}		
 			<NavLi href="/auth/signin#suc={$page.url.pathname}" active={true}>登录</NavLi>
 		{/if}

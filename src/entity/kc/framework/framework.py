@@ -17,5 +17,6 @@ class Framework:
         self.fastify.load(req)
 
     def dump(self) -> None:
+        self.req.on_before_dump()
         self.browser.dump(self.req)
         self.fastify.dump(self.req)

@@ -38,7 +38,7 @@ class Svelte(Project):
     # 组件的loader及模板环境．
     comp_tplset: "Tplcomp" = field(factory=Tplcomp)
     # 　页面的命名器．
-    page_namer: Namer = field(factory=Namer)
+    # page_namer: Namer = field(factory=Namer)
     # 项目的代码名称．
     name: str = field(default="client")
     # 项目的模板路径．
@@ -60,7 +60,7 @@ class Svelte(Project):
             result = urlparse(href)
             print(result)
             if result.scheme == "page":
-                return self.get_pagename(store, result.netloc)
+                return dumper.req.get_pageurl(result.netloc)
             # elif result.scheme == 'api':
             # else:
             #     raise ValueError("尚未实现的api")
@@ -68,57 +68,57 @@ class Svelte(Project):
             return "/" + dumper.dirname + "/" + "/".join(dumper.filepath)
         return "javascript:void(0)"
 
-    # 深度优先，在leave时处理，渲染并将代码保存到对应block.code中．
-    def travel_block(self, dumper, block) -> None:
-        # ctx = self.genbhctx
-        for sublock in block.blocks:
-            dumper.path.append(f"{sublock.type}_{sublock.hints}")
-            # 检查block是否需要新建一个子页面．
-            newsubpage = DumpUtil.has_subpage(sublock)
-            if newsubpage:
-                filename = dumper.namer()
-                dumper.filepath.append(filename)
-            # print("enter:", sublock.type, ctx.path)
-            if sublock.type == "Button":
-                sublock.href = self.cvt_href(sublock.href, ctx)
-            self.travel_block(sublock)
-            dumper.render_block(sublock)
-            dumper.path.pop()
-            if newsubpage:
-                dumper.render_page(filename, sublock, dumper)
-                # 因写入page,清空code,防止父blk组合代码时，意外插入此代码.
-                # sublock.code = ""
-                dumper.filepath.pop()
-                # print("filename=", filename, "code=", sublock.code)
-            # print("leave:", sublock.type)
+    # # 深度优先，在leave时处理，渲染并将代码保存到对应block.code中．
+    # def travel_block(self, dumper, block) -> None:
+    #     # ctx = self.genbhctx
+    #     for sublock in block.blocks:
+    #         dumper.path.append(f"{sublock.type}_{sublock.hints}")
+    #         # 检查block是否需要新建一个子页面．
+    #         newsubpage = DumpUtil.has_subpage(sublock)
+    #         if newsubpage:
+    #             filename = dumper.namer()
+    #             dumper.filepath.append(filename)
+    #         # print("enter:", sublock.type, ctx.path)
+    #         if sublock.type == "Button":
+    #             sublock.href = self.cvt_href(sublock.href, ctx)
+    #         self.travel_block(sublock)
+    #         dumper.render_block(sublock)
+    #         dumper.path.pop()
+    #         if newsubpage:
+    #             dumper.render_page(filename, sublock, dumper)
+    #             # 因写入page,清空code,防止父blk组合代码时，意外插入此代码.
+    #             # sublock.code = ""
+    #             dumper.filepath.pop()
+    #             # print("filename=", filename, "code=", sublock.code)
+    #         # print("leave:", sublock.type)
 
-    # 返回字符串或字典．字典代表了多个文件．key为文件名，如果value为字符串，则为内容．
-    def gen_page(self, req, page, render_vars, outdir):
-        # old_genctx = self.genbhctx
-        # self.genbhctx = BHpgDumper(page=page, vars=render_vars, outdir=outdir)
-        genbhctx = BHpgDumper(page=page, vars=render_vars, outdir=outdir)
-        # 深度遍历
-        self.travel_block(genbhctx, page)
-        # 将subblock的code合并到page.code中．
-        # page.code = "\n".join([block.code for block in page.blocks])
-        render_page("", page, self)
-        # filecnt = self.genbhctx.filecnt
-        filecnt = genbhctx.filecnt
-        # self.genbhctx = old_genctx
-        # print(ctx.filecnt)
-        return filecnt
+    # # 返回字符串或字典．字典代表了多个文件．key为文件名，如果value为字符串，则为内容．
+    # def gen_page(self, req, page, render_vars, outdir):
+    #     # old_genctx = self.genbhctx
+    #     # self.genbhctx = BHpgDumper(page=page, vars=render_vars, outdir=outdir)
+    #     genbhctx = BHpgDumper(page=page, vars=render_vars, outdir=outdir)
+    #     # 深度遍历
+    #     self.travel_block(genbhctx, page)
+    #     # 将subblock的code合并到page.code中．
+    #     # page.code = "\n".join([block.code for block in page.blocks])
+    #     render_page("", page, self)
+    #     # filecnt = self.genbhctx.filecnt
+    #     filecnt = genbhctx.filecnt
+    #     # self.genbhctx = old_genctx
+    #     # print(ctx.filecnt)
+    #     return filecnt
 
     # 工具函数，负责将页面名称转换为文件名．
-    def get_pagename(self, store, pagename):
-        filename = self.page_namer.name(pagename)
-        if is_valid_string(store.env.subdir):
-            return "/" + store.env.subdir + "/" + filename
-        return "/" + filename
+    # def get_pagename(self, store, pagename):
+    #     filename = self.page_namer.name(pagename)
+    #     if is_valid_string(store.env.subdir):
+    #         return "/" + store.env.subdir + "/" + filename
+    #     return "/" + filename
 
     def dump_page(self, req: "Requirement", basepath):
         for pagename, page in req.get_pages().items():
             # gen_page，生成页面．并确定其输出路径．
-            filename = self.page_namer.name(pagename)
+            filename = req.page_namer.name(pagename)
             dirname = filename
             store = req.store
             if is_valid_string(store.env.subdir):
@@ -151,15 +151,6 @@ class Svelte(Project):
         if dump_mode == "page":
             return self.dump_page(req, outpath)
         raise ValueError(f"svelte中未支持渲染模式{dump_mode}")
-
-    def dump(self, req: Requirement):
-        model = req.store.models["arch"]
-        anonymous = model.anonymous
-        if not anonymous:  # @todo: 未确定默认角色．
-            raise ValueError("当前未指定匿名角色．")
-        self.page_namer.reserved[model.roles[anonymous].home] = "index.html"
-        self.page_namer.suffix = ""
-        return super().dump(req)
 
     def load(self, req: Requirement):
         super().load(req)

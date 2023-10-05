@@ -2,7 +2,7 @@ from attrs import define, field
 from enum import Enum, auto
 
 from entity.entity import Entity
-from util.str import md5hash
+from util.str import md5hash, is_valid_string
 
 
 class Subjdtrm(Enum):
@@ -75,14 +75,26 @@ class Dtd(Entity):
     const: bool = field(default=False)
     datas: "list[dict]" = field(factory=list, metadata={"childtype": dict})
 
-    # 内部支持的表格名称列表:
+    # 内部支持的表格名称列表,key为人读名称，value为系统名称．
     @staticmethod
-    def buildins(obj: str):
-        return ["用户"]
+    def buildins() -> dict:
+        return {"用户": "user"}
+
+    @staticmethod
+    def buildiname(tablename):
+        bins = Dtd.buildins()
+        if tablename in bins:
+            return bins[tablename]
+        return ""
+
+    @staticmethod
+    def buildincol(tableName: str) -> dict:
+        if tableName == "user" or tableName == "用户":
+            return {"角色": "role"}
 
     @staticmethod
     def isbuildin(obj: str):
-        return obj in Dtd.buildins()
+        return obj in Dtd.buildins().keys()
 
 
 @define(slots=True, frozen=False, eq=False)
@@ -239,7 +251,7 @@ class Workflow(Entity):
                     "field": bh.fieldname(index),
                 }
         return ret
-    
+
     def tablename(self):
         return self.dtd or self.name
 
@@ -278,8 +290,11 @@ class Humod(Entity):
     def getdtdfield(self, tablename: str, fieldname: str):
         if tablename in self.dtds:
             fields = self.dtds[tablename].fields
-            if fieldname in fields:
-                return fields[fieldname]
+            if is_valid_string(fieldname):
+                if fieldname in fields:
+                    return fields[fieldname]
+            else:
+                return fields
         return None
 
     # 设置dtd字段类型

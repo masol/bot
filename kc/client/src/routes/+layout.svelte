@@ -23,7 +23,7 @@
 <svelte:head>
 	{#if isDev}
 		<script
-			src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
+			src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
 		<script>
 			// 只在开发环境有效，调整配置与项目的tailwind.loadConfigFromFile.cjs相同。
 			// tailwind.config = {

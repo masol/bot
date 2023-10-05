@@ -109,4 +109,15 @@ class Arch(Model):
                 # print(duty)
             # print(rolename, roleinfo)
         # print(self.omodel.pages)
+        # 对角色赋值数字id.
+        role_id = 1
+        # 遍历self.omodel.roles
+        for rolename, roleobj in self.omodel.roles.items():
+            if rolename == "admin":
+                roleobj.id = 0
+            elif roleobj.id < 0:
+                roleobj.id = role_id
+                role_id = role_id + 1
+        # print(self.omodel.roles)
+
         return store

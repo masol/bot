@@ -180,10 +180,12 @@ module.exports = async function (fastify, opts) {
         throw new error.PreconditionRequiredError(username + ' Already exists')
       }
       // 默认注册直接激活．不block.
+      // 默认用户为 {{req_default_role_name}}
       const newUser = {
         [colName]: username,
         password,
-        active: true
+        active: true,
+        role: [{{req_default_role}}]
       }
       await Users.query().insert(newUser)
       // 开始自动登录
@@ -209,5 +211,5 @@ module.exports = async function (fastify, opts) {
         return { data: ret }
       }
     }
-  )  
+  )
 }

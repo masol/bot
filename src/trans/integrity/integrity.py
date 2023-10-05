@@ -11,6 +11,7 @@ from entity.humod import (
     Subj,
     Subjdtrm,
     Workflow,
+    Dtd
 )
 from store import Store
 from util.str import is_valid_string, md5hash
@@ -51,6 +52,10 @@ class Integrity(Model):
                     _("behave objection '%s' is not a valid string") % (bh.obj)
                 )
             name = bh.obj
+            if Dtd.isbuildin(name): # 内建表格.直接索引．
+                bh.obj = Obj(name=name, table=Dtd.buildiname(name), field="")
+                return
+
             # pattern处理，以确定宾语索引的表格
             if name.endswith("角色"):
                 pass
@@ -150,14 +155,17 @@ class Integrity(Model):
             if pred.filedtype == "json":
                 if not bh.datas:
                     # todo: 这里检索知识库，以确定dict.
-                    Store.instance().env.warn(
-                        "a001",
-                        _("Cannot precisely deduce the type of '%s' in workflow '%s'.")
-                        % (obj, wf.name),
-                        _("Assuming it is an object containing a string"),
-                    )
-                    fieldtype = {}
-                    fieldtype[obj] = "str"
+                    if Dtd.isbuildin(obj):
+                        fieldtype = f"$id:{Dtd.buildiname(obj)}"
+                    else:
+                        Store.instance().env.warn(
+                            "a001",
+                            _("Cannot precisely deduce the type of '%s' in workflow '%s'.")
+                            % (obj, wf.name),
+                            _("Assuming it is an object containing a string"),
+                        )
+                        fieldtype = {}
+                        fieldtype[obj] = "str"
                 else:
                     fieldtype = bh.datas
 
